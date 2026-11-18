@@ -92,3 +92,9 @@ class VictimRequest(BaseModel):
     transfer_id: str | None = None
     story: str | None = Field(default=None, max_length=3000)
     lang: Lang | None = None
+
+
+class NativeCallSignal(BaseModel):
+    """Sent by the native wrapper (Android AudioManager.getMode / iOS CXCallObserver): only the fact of a call."""
+
+    on_call: bool

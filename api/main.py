@@ -21,7 +21,7 @@ from fastapi.staticfiles import StaticFiles
 from . import llm, msgcheck, schemes, victim
 from .risk import assess
 from .schemas import (AnswersRequest, CallVerifyRequest, CallVerifyResult, CheckResult, ComplaintRequest,
-                      ComplaintResult, FamilyDecision, MessageCheckRequest, Question, TransferRequest, TransferView,
+                      ComplaintResult, FamilyDecision, MessageCheckRequest, NativeCallSignal, Question, TransferRequest, TransferView,
                       VictimHelp, VictimRequest)
 from .state import BANK_NUMBER, FAMILY_TIMEOUT_S, SCAM_NUMBER, STATE, Call, FamilyRequest, Sms, Transfer
 from .texts import QUESTIONS, reason_text, t
@@ -181,6 +181,23 @@ def end_call(cid: str) -> dict:
             STATE.last_call_number[cid] = call.number
             STATE.bank_outbound.pop(cid, None)
     return {"ok": True}
+
+
+NATIVE_NUMBER = "native"
+
+
+@app.post("/api/phone/{cid}/native-call")
+def native_call(cid: str, req: NativeCallSignal) -> dict:
+    """Real call signal from the Android/iOS wrapper. Never carries the number or the audio."""
+    _client(cid)
+    with STATE.lock:
+        call = STATE.calls.get(cid)
+        if req.on_call and call is None:
+            STATE.calls[cid] = Call(NATIVE_NUMBER, "Телефонный звонок", time.time(), answered=True)
+            STATE.emit("call", cid, f"{_client(cid).short}: системный сигнал — идёт звонок")
+        elif not req.on_call and call is not None and call.number == NATIVE_NUMBER:
+            STATE.calls.pop(cid)
+    return {"on_call": req.on_call}
 
 
 # ---------------------------------------------------------------------------- layer 1: messages

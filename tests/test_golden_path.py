@@ -102,3 +102,12 @@ def test_victim_help_template_offline():
 def test_schemes_have_sources():
     for card in c.get("/api/schemes?lang=kk").json():
         assert card["source"].startswith("https://")
+
+
+def test_native_call_signal_raises_transfer_risk():
+    c.post("/api/phone/aigerim/native-call", json={"on_call": True})
+    assert c.get("/api/phone/aigerim").json()["call"]["answered"] is True
+    tr = c.post("/api/transfers", json={"client_id": "aigerim", "account": DANIYAR, "amount": 900_000}).json()
+    assert tr["level"] == 2
+    c.post("/api/phone/aigerim/native-call", json={"on_call": False})
+    assert c.get("/api/phone/aigerim").json()["call"] is None
