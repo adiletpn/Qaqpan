@@ -17,6 +17,7 @@
 
 ## Источники цифр
 
+- Доля звонков и SMS «от банков» среди случаев (янв–июль 2026: 2,9 тыс. из 13,1 тыс.): https://bank.kz/news/finansy-news/internet-moshennichestvo-kazakhstan-statistika/
 - Потери 2025 года, 29 млрд ₸ — МВД: https://kz.kursiv.media/2025-12-31/svvo-tainyi-santa-i-zvonki-kak-moshenniki-obmanyvali-kazahstanczev-v-2025-godu/
 - Через счета дропперов прошло 112 млрд ₸ (АФМ, 2026): https://qumash.kz/news/cherez-scheta-dropperov-v-kazahstane-proshlo-bolee-112-mlrd-tenge-v-2026-godu/
 - Антифрод-центр Нацбанка: https://nationalbank.kz/ru/news/informacionnye-soobshcheniya/17858

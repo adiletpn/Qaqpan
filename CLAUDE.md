@@ -23,19 +23,21 @@
 ## Карта
 
 ```
-api/        main.py (эндпоинты), state.py (данные демо), risk.py (скоринг перевода), msgcheck.py (сообщения),
+api/        main.py (эндпоинты), director.py (события сценария), state.py (данные демо), risk.py (скоринг перевода), msgcheck.py (сообщения),
             llm.py (Claude + кэш), texts.py (шаблоны RU/KK), victim.py (заявление), schemes.py (карточки схем)
-web/src/    phone/ (приложение банка: BankApp, screens, overlays), pages/ (Stage, Director), api.ts, i18n.ts
-scripts/    make_samples.py (скриншоты SMS), eval_messages.py (метрика), e2e_stage.py (браузерный прогон)
+web/src/    phone/ (приложение банка: BankApp, screens, overlays), pages/ (Stage, Director, shared), api.ts, i18n.ts,
+            native.ts (мост к Android/iOS-обёртке)
+scripts/    make_samples.py (скриншоты SMS), eval_messages.py (метрика), e2e_stage.py (браузерный прогон),
+            warm_llm_cache.py (кэш ИИ для демо)
 data/       samples.json, messages_eval.jsonl, llm_cache/
-tests/      test_golden_path.py — всё демо через API
+tests/      test_golden_path.py (всё демо через API), test_rules.py, test_risk.py, test_llm_fallback.py
 ```
 
 ## Команды
 
 ```
-make setup   make demo   make api   make web   make test   make eval   make samples
-.venv/bin/python scripts/e2e_stage.py http://localhost:8000 /tmp/shots   # браузерный прогон со скриншотами
+make setup   make demo   make api   make web   make test   make lint   make eval   make samples
+make warm    # кэш ИИ (нужен ключ)      make e2e   # браузерный прогон (сервер на :8000)
 ```
 
 ## Рабочий процесс
