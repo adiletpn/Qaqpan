@@ -1,0 +1,98 @@
+[
+  {
+    "id": "ecp",
+    "sender": "eGov",
+    "text": "Уважаемый пользователь! Срок действия вашей ЭЦП истекает сегодня. Во избежание блокировки доступа к госуслугам продлите ЭЦП по ссылке: egov-kz.online/ecp",
+    "label": {
+      "ru": "SMS «ЭЦП истекает»",
+      "kk": "SMS «ЭЦҚ мерзімі бітеді»"
+    },
+    "image": "/samples/ecp.png",
+    "based_on": "https://bes.media/news/prodlite-etsp-novaya-shema-moshennichestva-poyavilas-v-kazahstane/",
+    "constructed": true
+  },
+  {
+    "id": "ecp_kk",
+    "sender": "eGov",
+    "text": "Құрметті пайдаланушы! Сіздің ЭЦҚ мерзімі бүгін аяқталады. Мемлекеттік қызметтерге қолжетімділік бұғатталмас үшін сілтеме арқылы ұзартыңыз: egov-kz.online/ecp",
+    "label": {
+      "ru": "SMS «ЭЦҚ» (каз.)",
+      "kk": "SMS «ЭЦҚ»"
+    },
+    "image": "/samples/ecp_kk.png",
+    "based_on": "https://bes.media/news/prodlite-etsp-novaya-shema-moshennichestva-poyavilas-v-kazahstane/",
+    "constructed": true
+  },
+  {
+    "id": "bank_security",
+    "sender": "+7 707 112 45 90",
+    "text": "Служба безопасности банка: по вашей карте зафиксирована подозрительная операция на 480 000 тг. Если это не вы, срочно перезвоните по номеру +7 727 356 18 40",
+    "label": {
+      "ru": "«Служба безопасности банка»",
+      "kk": "«Банк қауіпсіздік қызметі»"
+    },
+    "image": "/samples/bank_security.png",
+    "based_on": "https://kz.kursiv.media/2025-12-31/svvo-tainyi-santa-i-zvonki-kak-moshenniki-obmanyvali-kazahstanczev-v-2025-godu/",
+    "constructed": true
+  },
+  {
+    "id": "olx",
+    "sender": "Покупатель OLX",
+    "text": "Здравствуйте! Я оплатил ваш товар через OLX Доставку. Чтобы получить деньги, перейдите по ссылке olx-kz.delivery-pay.site и введите данные карты",
+    "label": {
+      "ru": "«Оплата через OLX Доставку»",
+      "kk": "«OLX жеткізу арқылы төлем»"
+    },
+    "image": "/samples/olx.png",
+    "based_on": "https://kz.kursiv.media/2025-12-31/svvo-tainyi-santa-i-zvonki-kak-moshenniki-obmanyvali-kazahstanczev-v-2025-godu/",
+    "constructed": true
+  },
+  {
+    "id": "relative",
+    "sender": "+7 776 403 21 88",
+    "text": "Мама, это мой новый номер. Попал в неприятность, срочно скинь 150 000 на карту 4400 4302 1188 4417, потом всё объясню",
+    "label": {
+      "ru": "«Мама, это мой новый номер»",
+      "kk": "«Мама, бұл жаңа нөмірім»"
+    },
+    "image": "/samples/relative.png",
+    "based_on": "https://finance.kz/articles/kak-zashchititsya-ot-moshennikov-kazakhstan",
+    "constructed": true
+  },
+  {
+    "id": "drop",
+    "sender": "Telegram",
+    "text": "Подработка для студентов! Оформи карту и передай её нам — 30 000 тг за неделю, без вложений. Пиши @easy_money_kz",
+    "label": {
+      "ru": "«Подработка с картой»",
+      "kk": "«Картамен қосымша жұмыс»"
+    },
+    "image": "/samples/drop.png",
+    "based_on": "https://bes.media/news/prodal-schet-sel-v-tyurmu-skolko-dropperov-osudili-v-2026/",
+    "constructed": true
+  },
+  {
+    "id": "legit_otp",
+    "sender": "BCC",
+    "text": "Код подтверждения: 4721. Никому не сообщайте этот код, даже сотрудникам банка.",
+    "label": {
+      "ru": "Код подтверждения банка",
+      "kk": "Банктің растау коды"
+    },
+    "image": "/samples/legit_otp.png",
+    "based_on": null,
+    "constructed": true
+  },
+  {
+    "id": "legit_purchase",
+    "sender": "BCC",
+    "text": "Покупка 12 450 KZT. MAGNUM CASH&CARRY, Алматы. Доступно: 1 337 550 KZT",
+    "label": {
+      "ru": "Уведомление о покупке",
+      "kk": "Сатып алу туралы хабарлама"
+    },
+    "image": "/samples/legit_purchase.png",
+    "based_on": null,
+    "constructed": true
+  }
+]
