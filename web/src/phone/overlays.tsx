@@ -52,9 +52,10 @@ export function CallPill({ call, lang, onVerify, onEnd }: { call: Call; lang: La
   )
 }
 
-export function SmsBanner({ sms, lang, onOpen, onClose }: { sms: Sms; lang: Lang; onOpen: () => void; onClose: () => void }) {
+export function SmsBanner({ sms, lang, onOpen, onClose, belowCall = false }: { sms: Sms; lang: Lang; onOpen: () => void; onClose: () => void; belowCall?: boolean }) {
   return (
-    <div className="absolute inset-x-2 top-2 z-30 animate-[slidein_.35s_ease-out] rounded-2xl bg-white/95 p-3 shadow-xl ring-1 ring-slate-200 backdrop-blur">
+    <div className={`absolute inset-x-2 z-30 ${belowCall ? 'top-[92px]' : 'top-2'}`}>
+    <div className="animate-[slidein_.35s_ease-out] rounded-2xl bg-white/95 p-3 shadow-xl ring-1 ring-slate-200 backdrop-blur">
       <div className="flex items-start gap-3">
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-500 text-white"><Icon name="msg" className="h-5 w-5" /></span>
         <button onClick={onOpen} className="min-w-0 flex-1 text-left">
@@ -64,6 +65,7 @@ export function SmsBanner({ sms, lang, onOpen, onClose }: { sms: Sms; lang: Lang
         </button>
         <button onClick={onClose} className="text-slate-400" aria-label="close"><Icon name="x" className="h-4 w-4" /></button>
       </div>
+    </div>
     </div>
   )
 }

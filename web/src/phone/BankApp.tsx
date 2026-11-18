@@ -73,7 +73,7 @@ export default function BankApp({ clientId }: { clientId: string }) {
         {screen === 'schemes' && <SchemesScreen lang={lang} onBack={() => setScreen('home')} />}
       </div>
 
-      {showSms && !ringing && <SmsBanner sms={newestSms} lang={lang} onOpen={() => openCheck(newestSms.sample_id)} onClose={() => setDismissedSms(newestSms.id)} />}
+      {showSms && !ringing && <SmsBanner sms={newestSms} lang={lang} belowCall={!!snap.call?.answered} onOpen={() => openCheck(newestSms.sample_id)} onClose={() => setDismissedSms(newestSms.id)} />}
       {verify && <VerifySheet result={verify} lang={lang} onClose={() => setVerify(null)} />}
       {snap.family_requests[0] && <FamilySheet req={snap.family_requests[0]} lang={lang} onDone={refresh} />}
       {ringing && snap.call && (
