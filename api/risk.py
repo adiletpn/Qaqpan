@@ -21,7 +21,8 @@ WEIGHTS = {
     "NIGHT": 0.1,           # 00:00–06:00
     "PASTED": 0.05,
     "APP_SWITCH": 0.1,      # >= 2 switches to another app while filling the form
-    "KNOWN_RECIPIENT": -0.3,
+    "OWN_OTHER_BANK": 0.15,  # «move it to your own card in another bank first» during a call
+    "KNOWN_RECIPIENT": -0.3,  # not applied during a call: scammers use the victim's own accounts as a first hop
 }
 LEVEL_WARN = 0.3
 LEVEL_HOLD = 0.5
@@ -51,14 +52,16 @@ def assess(client: Client, acc: Account, amount: float, on_call: bool, pasted: b
     known = acc.number in client.known_accounts
     if on_call:
         add("CALL_ACTIVE")
+        if acc.owner_id == client.id and acc.bank != "BCC":
+            add("OWN_OTHER_BANK")
     if acc.in_afc:
         add("RECIPIENT_AFC")
     if acc.complaints > 0:
         add("RECIPIENT_COMPLAINTS")
-    if known:
-        add("KNOWN_RECIPIENT")
-    else:
+    if not known:
         add("NEW_RECIPIENT")
+    elif not on_call:
+        add("KNOWN_RECIPIENT")
     share = amount / client.balance if client.balance > 0 else 1.0
     if share >= 0.5:
         add("BIG_SHARE", WEIGHTS["BIG_SHARE"] + (0.1 if share >= 0.8 else 0.0))
