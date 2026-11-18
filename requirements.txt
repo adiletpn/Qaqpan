@@ -1,7 +1,8 @@
-fastapi>=0.115
-uvicorn[standard]>=0.30
-pydantic>=2.8
-anthropic>=0.70
-pillow>=10.4
-pytest>=8.3
-httpx>=0.27
+# exact versions: the deployed build must match what the tests ran on
+fastapi==0.163.2
+uvicorn[standard]==0.54.0
+pydantic==2.14.3
+anthropic==2.10.0
+pillow==13.0.0
+pytest==9.2.0
+httpx==0.28.1
