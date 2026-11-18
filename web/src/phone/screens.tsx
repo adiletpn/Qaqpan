@@ -22,11 +22,22 @@ export function CheckScreen({ clientId, lang, initialSample, onBack }: { clientI
 
   const onFile = (f: File | undefined) => {
     if (!f) return
+    if (!f.type.startsWith('image/')) { setErr(L('error')); return }
     const reader = new FileReader()
     reader.onload = () => {
-      const url = String(reader.result)
-      setUpload({ b64: url.split(',')[1], type: f.type || 'image/png', url })
-      setSample(null); setRes(null)
+      // phone photos are 5–10 MB: downscale to ≤1600 px JPEG before sending
+      const img = new Image()
+      img.onload = () => {
+        const k = Math.min(1, 1600 / Math.max(img.width, img.height))
+        const cv = document.createElement('canvas')
+        cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k)
+        cv.getContext('2d')?.drawImage(img, 0, 0, cv.width, cv.height)
+        const url = cv.toDataURL('image/jpeg', 0.85)
+        setUpload({ b64: url.split(',')[1], type: 'image/jpeg', url })
+        setSample(null); setRes(null); setErr(null)
+      }
+      img.onerror = () => setErr(L('error'))
+      img.src = String(reader.result)
     }
     reader.readAsDataURL(f)
   }
@@ -174,8 +185,13 @@ export function ResultScreen({ clientId, lang, transfer: t, onUpdate, onHome, on
   const [answers, setAnswers] = useState<(boolean | null)[]>([null, null, null])
   const [busy, setBusy] = useState(false)
   const [complained, setComplained] = useState<string | null>(null)
-  const act = async (f: () => Promise<TransferView>) => { setBusy(true); try { onUpdate(await f()) } finally { setBusy(false) } }
-  const complain = async () => { setBusy(true); try { setComplained((await api.complain(clientId, t.id)).message) } finally { setBusy(false) } }
+  const [err, setErr] = useState<string | null>(null)
+  const run = async (f: () => Promise<void>) => {
+    setBusy(true); setErr(null)
+    try { await f() } catch (e) { setErr(e instanceof Error ? e.message : L('error')) } finally { setBusy(false) }
+  }
+  const act = (f: () => Promise<TransferView>) => run(async () => onUpdate(await f()))
+  const complain = () => run(async () => setComplained((await api.complain(clientId, t.id)).message))
 
   const look = {
     completed: { bg: 'bg-emerald-600', icon: 'check' }, warning: { bg: 'bg-amber-500', icon: 'alert' },
@@ -193,6 +209,8 @@ export function ResultScreen({ clientId, lang, transfer: t, onUpdate, onHome, on
         <div className="mt-1 text-sm text-slate-500">{money(t.amount)} → {t.holder}</div>
         {t.message && <p className="mt-3 text-[15px] leading-relaxed text-slate-700">{t.message}</p>}
       </div>
+
+      {err && <div className="mt-4 rounded-xl bg-red-50 p-3 text-center text-sm text-red-700">{err}</div>}
 
       {t.status === 'questions' && (
         <div className="mt-5 space-y-2">
@@ -252,7 +270,10 @@ export function VictimScreen({ clientId, lang, transferId, onBack }: { clientId:
   const [busy, setBusy] = useState(false)
   const [copied, setCopied] = useState(false)
   useEffect(() => { api.victim(clientId, lang, transferId).then(setHelp).catch(() => setHelp(null)) }, [clientId, lang, transferId])
-  const build = async () => { setBusy(true); try { setHelp(await api.victim(clientId, lang, transferId, story)) } finally { setBusy(false) } }
+  const build = async () => {
+    setBusy(true)
+    try { setHelp(await api.victim(clientId, lang, transferId, story)) } catch { /* keep the template version */ } finally { setBusy(false) }
+  }
   const copy = async () => {
     if (!help) return
     try { await navigator.clipboard.writeText(`${help.statement.title}\n\n${help.statement.body}`); setCopied(true) } catch { setCopied(false) }
