@@ -29,24 +29,35 @@ export interface TransferView {
 }
 export interface FamilyRequest {
   id: string
-  from_name: string
+  ward_name: string
+  ward_title: string
+  ward_phone: string
   amount: number
   account: string
   holder: string
-  reasons: string[]
-  said_yes: boolean
+  headline: string
+  explanation: string
+  advice: string
+  timeline: { ts: number; text: string }[]
   expires_in: number
 }
+export interface Notice { id: string; ts: number; kind: 'family_request' | 'shield_disable' | 'info'; title: string; body: string; ref: string | null }
+export type Shield =
+  | { role: 'ward'; guardian_name: string; guardian_title: string; limit: number; active: boolean; disable_at: number | null }
+  | { role: 'guardian'; wards: { ward_id: string; name: string; title: string; limit: number; active: boolean; disable_at: number | null }[] }
+  | { role: 'none' }
 export interface Sms { id: string; sender: string; text: string; sample_id: string | null; ts: number }
 export interface Snapshot {
   epoch: number
-  client: { id: string; name: string; short: string; lang: Lang; balance: number; avatar: string; guardian: string | null }
+  client: { id: string; name: string; short: string; lang: Lang; balance: number; avatar: string; guardian: string | null; phone: string }
   call: { number: string; label: string; answered: boolean; since: number } | null
   sms: Sms[]
   prefill: { account: string; amount: number; note?: string } | null
   nav: { screen: string; seq: number } | null
   transfers: TransferView[]
   family_requests: FamilyRequest[]
+  notices: Notice[]
+  shield: Shield
 }
 export interface CallVerify { status: 'bank' | 'not_bank' | 'no_call'; title: string; message: string; number: string | null; number_complaints: number }
 export interface Sample { id: string; sender: string; text: string; label: Record<Lang, string>; image: string; based_on: string | null }
@@ -55,13 +66,30 @@ export interface VictimHelp { steps: string[]; statement: { title: string; body:
 export interface StageEvent { seq: number; ts: number; kind: string; client_id: string | null; text: string; step: string | null; stopped: boolean }
 export interface Stage { steps: string[]; stopped: number; events: StageEvent[] }
 
-async function req<T>(url: string, body?: unknown): Promise<T> {
-  const r = await fetch(url, body === undefined ? undefined : {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-  })
+// Presenter key for a public deployment: open /stage?key=... once, it is remembered on this device.
+const KEY_STORAGE = 'qalqan.directorKey'
+export function captureDirectorKey() {
+  try {
+    const k = new URLSearchParams(window.location.search).get('key')
+    if (k) localStorage.setItem(KEY_STORAGE, k)
+  } catch { /* storage may be unavailable */ }
+}
+function directorKey(): string | null {
+  try { return localStorage.getItem(KEY_STORAGE) } catch { return null }
+}
+
+async function req<T>(url: string, body?: unknown, headers: Record<string, string> = {}): Promise<T> {
+  let r: Response
+  try {
+    r = await fetch(url, body === undefined ? undefined : {
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body),
+    })
+  } catch {
+    throw new Error('Нет связи с сервером')
+  }
   if (!r.ok) {
     const err = await r.json().catch(() => ({ detail: r.statusText }))
-    throw new Error(typeof err.detail === 'string' ? err.detail : 'Ошибка запроса')
+    throw new Error(typeof err.detail === 'string' ? err.detail : 'Проверьте введённые данные')
   }
   return r.json() as Promise<T>
 }
@@ -79,14 +107,20 @@ export const api = {
   answers: (id: string, answers: boolean[]) => req<TransferView>(`/api/transfers/${id}/answers`, { answers }),
   cancel: (id: string) => req<TransferView>(`/api/transfers/${id}/cancel`, {}),
   proceed: (id: string) => req<TransferView>(`/api/transfers/${id}/proceed`, {}),
-  family: (rid: string, approve: boolean) => req<{ status: string }>(`/api/family/${rid}/decision`, { approve }),
+  family: (rid: string, approve: boolean) => req<{ status: string }>(`/api/family/requests/${rid}/decision`, { approve }),
+  shieldDisable: (wardId: string) => req<{ disable_at: number }>(`/api/family/${wardId}/disable`, {}),
+  shieldKeep: (wardId: string) => req<{ disable_at: null }>(`/api/family/${wardId}/keep`, {}),
+  noticeSeen: (id: string, nid: string) => req(`/api/phone/${id}/notices/${nid}/seen`, {}),
   complain: (client_id: string, transfer_id: string) => req<{ message: string }>('/api/complaints', { client_id, transfer_id }),
   victim: (client_id: string, lang: Lang, transfer_id?: string, story?: string) =>
     req<VictimHelp>('/api/victim/help', { client_id, lang, transfer_id, story: story || null }),
   schemes: (lang: Lang) => req<SchemeCard[]>(`/api/schemes?lang=${lang}`),
   samples: () => req<Sample[]>('/api/samples'),
   stage: () => req<Stage>('/api/stage'),
-  director: (action: string) => req(`/api/director/${action}`, {}),
+  director: (action: string) => {
+    const k = directorKey()
+    return req(`/api/director/${action}`, {}, k ? { 'X-Director-Key': k } : {})
+  },
   nativeCall: (id: string, on_call: boolean) => req(`/api/phone/${id}/native-call`, { on_call }),
 }
 
