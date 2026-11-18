@@ -9,8 +9,8 @@ DAY = datetime(2026, 11, 20, 14, 0)
 NIGHT = datetime(2026, 11, 20, 3, 0)
 
 
-def client(**kw):
-    return Client("c", "Тест Т.", "Тест", 40, "Алматы", "ru", kw.pop("balance", 1_000_000), known_accounts={"111"}, **kw)
+def client(balance=1_000_000):
+    return Client("c", "Тест Т.", "Тест", 40, "Алматы", "ru", balance, "+7 700 000 00 00", known_accounts={"111", "777"})
 
 
 def acc(number="999", **kw):
@@ -50,3 +50,16 @@ def test_behaviour_signals_add_up_to_a_warning():
 def test_score_is_clipped():
     a = assess(client(balance=100_000), acc(complaints=2, in_afc=True), 95_000, True, True, 5, NIGHT)
     assert a.score == 1.0
+
+
+def test_known_recipient_gets_no_discount_during_a_call():
+    a = assess(client(), acc("111"), 600_000, True, False, 0, DAY)
+    assert "KNOWN_RECIPIENT" not in a.reasons and a.level == 2
+
+
+def test_own_card_in_other_bank_during_call_is_flagged():
+    own = Account("777", "777", "Своя карта", "Другой банк", owner_id="c")
+    a = assess(client(), own, 800_000, True, False, 0, DAY)
+    assert "OWN_OTHER_BANK" in a.reasons and a.level == 2
+    calm = assess(client(), own, 800_000, False, False, 0, DAY)
+    assert "OWN_OTHER_BANK" not in calm.reasons and calm.level == 0

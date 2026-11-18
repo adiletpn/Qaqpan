@@ -49,7 +49,7 @@ def test_golden_path():
     assert tr["status"] == "awaiting_family" and tr["guardian_name"] == "Ержан"
     req = c.get("/api/phone/erzhan").json()["family_requests"][0]
     assert req["amount"] == 900_000
-    d = c.post(f"/api/family/{req['id']}/decision", json={"approve": False}).json()
+    d = c.post(f"/api/family/requests/{req['id']}/decision", json={"approve": False}).json()
     assert d["transfer"]["status"] == "cancelled"
     assert c.get("/api/phone/aigerim").json()["client"]["balance"] == 1_350_000
 
