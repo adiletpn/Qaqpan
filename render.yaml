@@ -7,5 +7,10 @@ services:
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false
+      # the presenter opens /director?key=<value> once; without it nobody else can reset or drive the demo
+      - key: QALQAN_DIRECTOR_KEY
+        generateValue: true
       - key: QALQAN_DEMO
         value: "0"
+      - key: QALQAN_LLM_DAILY
+        value: "500"
