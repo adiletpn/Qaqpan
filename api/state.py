@@ -172,6 +172,13 @@ class State:
             self.accounts[num] = acc
         return acc
 
+    def end_call(self, cid: str) -> None:
+        with self.lock:
+            call = self.calls.pop(cid, None)
+            if call:
+                self.last_call_number[cid] = call.number
+                self.bank_outbound.pop(cid, None)
+
     def expire_family(self) -> None:
         now = time.time()
         for fr in self.family.values():

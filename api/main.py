@@ -18,12 +18,12 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import llm, msgcheck, schemes, victim
+from . import director, llm, msgcheck, schemes, victim
 from .risk import assess
 from .schemas import (AnswersRequest, CallVerifyRequest, CallVerifyResult, CheckResult, ComplaintRequest,
                       ComplaintResult, FamilyDecision, MessageCheckRequest, NativeCallSignal, Question, TransferRequest, TransferView,
                       VictimHelp, VictimRequest)
-from .state import BANK_NUMBER, FAMILY_TIMEOUT_S, SCAM_NUMBER, STATE, Call, FamilyRequest, Sms, Transfer
+from .state import BANK_NUMBER, FAMILY_TIMEOUT_S, STATE, Call, FamilyRequest, Transfer
 from .texts import QUESTIONS, reason_text, t
 
 logging.basicConfig(level=logging.INFO)
@@ -175,11 +175,7 @@ def answer_call(cid: str) -> dict:
 
 @app.post("/api/phone/{cid}/call/end")
 def end_call(cid: str) -> dict:
-    with STATE.lock:
-        call = STATE.calls.pop(cid, None)
-        if call:
-            STATE.last_call_number[cid] = call.number
-            STATE.bank_outbound.pop(cid, None)
+    STATE.end_call(cid)
     return {"ok": True}
 
 
@@ -401,39 +397,12 @@ def stage(since: int = 0) -> dict:
         }
 
 
-DEMO_ACCOUNT = "KZ86 8562 0000 0471 1934"
-
-
 @app.post("/api/director/{action}")
-def director(action: str) -> dict:
-    now = time.time()
-    with STATE.lock:
-        if action == "reset":
-            STATE.reset()
-        elif action == "sms":
-            STATE.sms["aigerim"].append(Sms(STATE.new_id("SMS"), "eGov", msgcheck.load_samples().get("ecp", {}).get(
-                "text", "Срок действия вашей ЭЦП истекает сегодня. Продлите: egov-kz.online/ecp"), "ecp", now))
-            STATE.emit("director", "aigerim", "Айгерим получила SMS «ЭЦП истекает»")
-        elif action == "call":
-            STATE.calls["aigerim"] = Call(SCAM_NUMBER, SCAM_NUMBER, now)
-            STATE.emit("director", "aigerim", f"Айгерим звонят с {SCAM_NUMBER} («служба безопасности банка»)")
-        elif action == "end_call":
-            end_call("aigerim")
-        elif action == "transfer_aigerim":
-            STATE.prefill["aigerim"] = {"account": DEMO_ACCOUNT, "amount": 900_000}
-            STATE.nav["aigerim"] = {"screen": "transfer", "seq": int(now * 1000)}
-        elif action == "transfer_madina":
-            STATE.prefill["madina"] = {"account": DEMO_ACCOUNT, "amount": 150_000, "note": "iPhone 15 · OLX"}
-            STATE.nav["madina"] = {"screen": "transfer", "seq": int(now * 1000)}
-        elif action == "bank_calls_madina":
-            STATE.calls["madina"] = Call(BANK_NUMBER, "BCC · 505", now, is_bank=True)
-            STATE.bank_outbound["madina"] = Call(BANK_NUMBER, "BCC", now, is_bank=True,
-                                                 employee="Асем Нурланова", department="отдел кредитования")
-            STATE.emit("director", "madina", "Мадине звонит настоящий сотрудник банка (505)")
-        elif action == "victim":
-            STATE.nav["aigerim"] = {"screen": "victim", "seq": int(now * 1000)}
-        else:
-            raise HTTPException(404, f"unknown action {action}")
+def director_action(action: str) -> dict:
+    try:
+        director.run(action)
+    except KeyError:
+        raise HTTPException(404, f"unknown action {action}")
     return {"ok": True, "action": action}
 
 
