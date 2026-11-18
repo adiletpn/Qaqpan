@@ -1,7 +1,7 @@
 PY := .venv/bin/python
 PIP := .venv/bin/pip
 
-.PHONY: setup samples eval demo dev api web test types
+.PHONY: setup samples eval demo dev api web test types e2e lint
 
 setup:          ## venv (Python 3.12) + deps + web deps
 	test -d .venv || python3.12 -m venv .venv
@@ -30,3 +30,9 @@ test:
 types:          ## OpenAPI -> web/src/api/types.ts
 	$(PY) -c "import json; from api.main import app; print(json.dumps(app.openapi()))" > web/openapi.json
 	cd web && npx openapi-typescript openapi.json -o src/api/types.ts
+
+e2e:            ## click through the whole demo in headless Chrome (server must run on :8000)
+	$(PY) scripts/e2e_stage.py http://localhost:8000 e2e_shots
+
+lint:
+	cd web && npx eslint src
