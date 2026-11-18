@@ -23,14 +23,15 @@
 ## Карта
 
 ```
-api/        main.py (эндпоинты), director.py (события сценария), state.py (данные демо), risk.py (скоринг перевода), msgcheck.py (сообщения),
+api/        main.py (эндпоинты), director.py (события сценария), family.py (семейный щит), state.py (данные демо), risk.py (скоринг перевода), msgcheck.py (сообщения),
             llm.py (Claude + кэш), texts.py (шаблоны RU/KK), victim.py (заявление), schemes.py (карточки схем)
 web/src/    phone/ (приложение банка: BankApp, screens, overlays), pages/ (Stage, Director, shared), api.ts, i18n.ts,
             native.ts (мост к Android/iOS-обёртке)
 scripts/    make_samples.py (скриншоты SMS), eval_messages.py (метрика), e2e_stage.py (браузерный прогон),
             warm_llm_cache.py (кэш ИИ для демо)
 data/       samples.json, messages_eval.jsonl, llm_cache/
-tests/      test_golden_path.py (всё демо через API), test_rules.py, test_risk.py, test_llm_fallback.py
+tests/      test_golden_path.py (всё демо через API), test_rules.py, test_risk.py, test_llm_fallback.py,
+            test_robustness.py (регрессии аудита + семейный щит)
 ```
 
 ## Команды
