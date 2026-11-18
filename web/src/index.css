@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+html, body, #root { height: 100%; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #020617; -webkit-font-smoothing: antialiased; }
+
+@keyframes slidein { from { transform: translateY(-120%); opacity: 0 } to { transform: none; opacity: 1 } }
+@keyframes slideup { from { transform: translateY(100%) } to { transform: none } }
+@keyframes pop { 0% { transform: scale(.85); opacity: 0 } 100% { transform: none; opacity: 1 } }
