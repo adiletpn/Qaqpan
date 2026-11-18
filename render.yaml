@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: qalqan
+    runtime: docker
+    plan: starter
+    healthCheckPath: /api/health
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: QALQAN_DEMO
+        value: "0"
