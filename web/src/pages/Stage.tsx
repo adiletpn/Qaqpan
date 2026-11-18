@@ -60,9 +60,11 @@ export function StepsBar({ fired }: { fired: string[] }) {
 }
 
 export default function Stage() {
-  const stage = useStage()
+  const { stage, offline } = useStage()
+  const [warn, setWarn] = useState<string | null>(null)
   const scale = useScale(820, 250)
-  useDirectorHotkeys()
+  useDirectorHotkeys(setWarn)
+  useEffect(() => { if (!warn) return; const t = setTimeout(() => setWarn(null), 4000); return () => clearTimeout(t) }, [warn])
   const [help, setHelp] = useState(false)
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === '?' || e.key.toLowerCase() === 'h') setHelp(v => !v) }
@@ -98,6 +100,12 @@ export default function Stage() {
           </div>
         ))}
       </main>
+
+      {(offline || warn) && (
+        <div className="fixed left-1/2 top-24 z-50 -translate-x-1/2 rounded-full bg-amber-500 px-4 py-1.5 text-sm font-semibold text-white shadow-lg">
+          {offline ? 'Нет связи с сервером — повторяем…' : warn}
+        </div>
+      )}
 
       {help && (
         <div className="fixed bottom-6 right-6 z-50 w-96 rounded-2xl bg-slate-900/95 p-4 text-sm shadow-2xl ring-1 ring-white/10">

@@ -4,10 +4,14 @@ import { StepsBar } from './Stage'
 import { ACTIONS, useDirectorHotkeys, useStage } from './shared'
 
 export default function Director() {
-  const stage = useStage(700)
+  const { stage, offline } = useStage(700)
+  const [err, setErr] = useState<string | null>(null)
   const [last, setLast] = useState<string | null>(null)
-  useDirectorHotkeys()
-  const run = async (action: string) => { setLast(action); await api.director(action).catch(() => undefined) }
+  useDirectorHotkeys(setErr)
+  const run = async (action: string) => {
+    setLast(action); setErr(null)
+    try { await api.director(action) } catch (e) { setErr(e instanceof Error ? e.message : 'Ошибка') }
+  }
   return (
     <div className="min-h-screen bg-slate-950 p-6 text-white">
       <div className="mx-auto max-w-5xl">
@@ -15,6 +19,11 @@ export default function Director() {
           <h1 className="text-2xl font-black">Пульт демо</h1>
           <div className="text-right"><span className="text-3xl font-black text-emerald-400">{stage?.stopped ?? 0}</span> <span className="text-sm text-slate-400">остановлено</span></div>
         </div>
+        {(offline || err) && (
+          <div className="mt-3 rounded-xl bg-amber-500/20 px-4 py-2 text-sm text-amber-200 ring-1 ring-amber-500/40">
+            {offline ? 'Нет связи с сервером — повторяем…' : err}{err?.includes('ключ') ? ' — откройте /director?key=…' : ''}
+          </div>
+        )}
         <div className="mt-4 overflow-x-auto"><StepsBar fired={stage?.steps ?? []} /></div>
         <div className="mt-6 grid gap-3 md:grid-cols-2">
           {ACTIONS.map(a => (
