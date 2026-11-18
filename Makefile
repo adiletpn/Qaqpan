@@ -1,7 +1,7 @@
 PY := .venv/bin/python
 PIP := .venv/bin/pip
 
-.PHONY: setup samples eval demo dev api web test types e2e lint warm
+.PHONY: setup samples eval demo dev api web test types e2e lint warm video
 
 setup:          ## venv (Python 3.12) + deps + web deps
 	test -d .venv || python3.12 -m venv .venv
@@ -39,3 +39,6 @@ lint:
 
 warm:           ## fill data/llm_cache with Claude answers for the demo screenshots (needs ANTHROPIC_API_KEY)
 	$(PY) scripts/warm_llm_cache.py
+
+video:          ## record the narrated demo video (server must run on :8000) -> video/qalqan_demo.mp4
+	$(PY) scripts/record_demo.py http://localhost:8000 video/qalqan_demo.mp4
