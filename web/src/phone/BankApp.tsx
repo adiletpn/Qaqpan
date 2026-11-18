@@ -4,6 +4,7 @@ import { tr } from '../i18n'
 import { Card, Icon } from '../ui'
 import { CheckScreen, ResultScreen, SchemesScreen, TransferScreen, VictimScreen } from './screens'
 import { CallPill, FamilySheet, IncomingCall, SmsBanner, VerifySheet } from './overlays'
+import { useNativeCallSignal } from '../native'
 
 export type Screen = 'home' | 'check' | 'transfer' | 'result' | 'victim' | 'schemes'
 
@@ -15,6 +16,7 @@ export default function BankApp({ clientId }: { clientId: string }) {
   const [verify, setVerify] = useState<CallVerify | null>(null)
   const [dismissedSms, setDismissedSms] = useState<string | null>(null)
   const navSeq = useRef(0)
+  useNativeCallSignal(clientId)
 
   const refresh = useCallback(async () => {
     try { setSnap(await api.phone(clientId)) } catch { /* server restarting: keep last snapshot */ }

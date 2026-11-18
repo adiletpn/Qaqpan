@@ -86,6 +86,7 @@ export const api = {
   samples: () => req<Sample[]>('/api/samples'),
   stage: () => req<Stage>('/api/stage'),
   director: (action: string) => req(`/api/director/${action}`, {}),
+  nativeCall: (id: string, on_call: boolean) => req(`/api/phone/${id}/native-call`, { on_call }),
 }
 
 export const money = (n: number) => `${Math.round(n).toLocaleString('ru-RU').replace(/,/g, ' ')} ₸`
