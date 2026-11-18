@@ -144,6 +144,7 @@ def phone(cid: str) -> dict:
                     "expires_in": max(0, int(fr.expires - time.time())),
                 })
         return {
+            "epoch": STATE.epoch,
             "client": {"id": c.id, "name": c.name, "short": c.short, "lang": c.lang, "balance": c.balance,
                        "avatar": c.avatar, "guardian": STATE.clients[c.guardian_id].short if c.guardian_id else None},
             "call": None if not call else {"number": call.number, "label": call.caller_label, "answered": call.answered,

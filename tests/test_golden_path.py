@@ -111,3 +111,9 @@ def test_native_call_signal_raises_transfer_risk():
     assert tr["level"] == 2
     c.post("/api/phone/aigerim/native-call", json={"on_call": False})
     assert c.get("/api/phone/aigerim").json()["call"] is None
+
+
+def test_reset_bumps_epoch():
+    e = c.get("/api/phone/aigerim").json()["epoch"]
+    c.post("/api/director/reset")
+    assert c.get("/api/phone/aigerim").json()["epoch"] == e + 1

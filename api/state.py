@@ -120,6 +120,7 @@ class State:
     # ------------------------------------------------------------------ seed
     def reset(self) -> None:
         with self.lock:
+            self.epoch = getattr(self, "epoch", 0) + 1  # phones return to the home screen when it changes
             self._ids = itertools.count(1)
             self.clients: dict[str, Client] = {
                 "aigerim": Client("aigerim", "Айгерим Сейткали", "Айгерим", 52, "Алматы", "kk", 1_350_000,
