@@ -11,6 +11,10 @@ import hashlib
 import json
 import logging
 import os
+import threading
+import time
+from collections import deque
+from datetime import date
 from pathlib import Path
 from typing import Callable, TypeVar
 
@@ -22,11 +26,30 @@ ROOT = Path(__file__).resolve().parent.parent
 CACHE_DIR = ROOT / "data" / "llm_cache"
 MODEL = os.getenv("QALQAN_MODEL", "claude-opus-5-5")
 TIMEOUT_S = float(os.getenv("QALQAN_LLM_TIMEOUT", "25"))
+# Spend guard for a public link: beyond these limits answers come from rules/templates.
+RPM = int(os.getenv("QALQAN_LLM_RPM", "20"))
+DAILY = int(os.getenv("QALQAN_LLM_DAILY", "500"))
 
 M = TypeVar("M", bound=BaseModel)
 
 _client = None
 _disabled_reason: str | None = None
+_guard = threading.Lock()
+_recent: deque[float] = deque()
+_daily: dict[date, int] = {}
+
+
+def _allow_live_call() -> bool:
+    now = time.time()
+    with _guard:
+        while _recent and now - _recent[0] > 60:
+            _recent.popleft()
+        today = date.today()
+        if len(_recent) >= RPM or _daily.get(today, 0) >= DAILY:
+            return False
+        _recent.append(now)
+        _daily[today] = _daily.get(today, 0) + 1
+        return True
 
 
 def demo_mode() -> bool:
@@ -34,7 +57,8 @@ def demo_mode() -> bool:
 
 
 def status() -> dict:
-    return {"model": MODEL, "demo_mode": demo_mode(), "live_disabled": _disabled_reason}
+    return {"model": MODEL, "demo_mode": demo_mode(), "live_disabled": _disabled_reason,
+            "calls_today": _daily.get(date.today(), 0), "daily_limit": DAILY}
 
 
 def _get_client():
@@ -60,7 +84,7 @@ def cached_call(kind: str, payload: dict, model_cls: type[M], call: Callable[[],
             return model_cls.model_validate_json(path.read_text()), "cache"
         except Exception:  # corrupted cache entry: ignore and recompute
             log.warning("bad cache entry %s", path.name)
-    if demo_mode() or _disabled_reason:
+    if demo_mode() or _disabled_reason or not _allow_live_call():
         return None, "unavailable"
     import anthropic
 

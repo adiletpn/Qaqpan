@@ -38,7 +38,7 @@ def main() -> None:
     if os.getenv("QALQAN_EVAL_LLM") == "1":
         llm_preds = []
         for r in rows:
-            res = msgcheck.check_llm(r["text"], None, "image/png", r["lang"], {"text": r["text"], "img": "0"})
+            res = msgcheck.check_llm(r["text"], None, "image/png", r["lang"], {"text": r["text"], "img": ""})
             llm_preds.append(res.verdict if res else "n/a")
         if "n/a" not in llm_preds:
             results["Claude"] = llm_preds

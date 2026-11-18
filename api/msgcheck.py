@@ -9,9 +9,11 @@ If the model is unavailable the rules verdict is returned, so the feature never 
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import re
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 from urllib.parse import urlparse
@@ -246,6 +248,7 @@ def check_llm(text: str | None, image_b64: str | None, media_type: str, lang: La
     )
 
 
+@lru_cache(maxsize=1)
 def load_samples() -> dict[str, dict]:
     if not SAMPLES_FILE.exists():
         return {}
@@ -264,7 +267,7 @@ def check(text: str | None, image_b64: str | None, media_type: str, sample_id: s
                 media_type = "image/png"
     if not text and not image_b64:
         raise ValueError("empty input")
-    payload = {"text": text or "", "img": (image_b64 or "")[-64:] + str(len(image_b64 or ""))}
+    payload = {"text": text or "", "img": hashlib.sha256((image_b64 or "").encode()).hexdigest()[:32] if image_b64 else ""}
     via_llm = check_llm(text, image_b64, media_type, lang, payload)
     if via_llm:
         return via_llm
