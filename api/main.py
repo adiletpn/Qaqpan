@@ -243,8 +243,9 @@ def check_message(req: MessageCheckRequest) -> CheckResult:
     cid = req.client_id if req.client_id in STATE.clients else None
     who = STATE.clients[cid].short if cid else "Клиент"
     if res.verdict == "scam":
-        STATE.alert(cid, f"Проверено сообщение — мошенничество ({res.scheme_name or 'схема'})",
-                    f"Хабарлама тексерілді — алаяқтық ({res.scheme_name or 'схема'})")
+        names = msgcheck.SCHEME_NAME.get(res.scheme or "", {"ru": "схема", "kk": "схема"})
+        STATE.alert(cid, f"Проверено сообщение — мошенничество ({names['ru']})",
+                    f"Хабарлама тексерілді — алаяқтық ({names['kk']})")
         STATE.emit("message", cid, f"{who}: сообщение — мошенничество ({res.scheme_name or 'схема'})",
                    step="written", stopped=True)
     else:
