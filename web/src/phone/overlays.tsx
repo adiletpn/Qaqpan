@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { api, money, type CallVerify, type FamilyRequest, type Lang, type Sms, type Snapshot } from '../api'
+import { type CallVerify, type Lang, type Sms, type Snapshot } from '../api'
 import { tr } from '../i18n'
 import { Button, Icon } from '../ui'
 
@@ -80,38 +80,6 @@ export function VerifySheet({ result, lang, onClose }: { result: CallVerify; lan
         <h3 className="mt-4 text-center text-xl font-bold">{result.title}</h3>
         <p className="mt-2 text-center text-sm text-slate-600">{result.message}</p>
         <Button className="mt-5" tone={result.status === 'not_bank' ? 'danger' : 'primary'} onClick={onClose}>{tr(lang, 'done')}</Button>
-      </div>
-    </div>
-  )
-}
-
-export function FamilySheet({ req, lang, onDone }: { req: FamilyRequest; lang: Lang; onDone: () => void }) {
-  const [busy, setBusy] = useState(false)
-  const decide = async (approve: boolean) => { setBusy(true); try { await api.family(req.id, approve) } finally { setBusy(false); onDone() } }
-  return (
-    <div className="absolute inset-0 z-30 flex items-end bg-black/50">
-      <div className="w-full animate-[slideup_.3s_ease-out] rounded-t-3xl bg-white p-5 pb-7">
-        <div className="flex items-center gap-2 text-teal-800">
-          <Icon name="family" className="h-6 w-6" />
-          <span className="text-sm font-bold uppercase tracking-wide">{tr(lang, 'family_shield')}</span>
-        </div>
-        <h3 className="mt-3 text-xl font-bold leading-snug">
-          {req.from_name} {tr(lang, 'family_text')} {money(req.amount)}
-        </h3>
-        <div className="mt-1 text-sm text-slate-500">{tr(lang, 'to')}: {req.holder} · {req.account}</div>
-        <div className="mt-4 rounded-2xl bg-red-50 p-3 ring-1 ring-red-100">
-          <div className="text-xs font-semibold text-red-700">{tr(lang, 'why')}</div>
-          <ul className="mt-1 space-y-0.5 text-sm text-red-900">
-            {req.reasons.map(r => <li key={r}>• {r}</li>)}
-            {req.said_yes && <li>• {tr(lang, 'said_yes')}</li>}
-          </ul>
-        </div>
-        <div className="mt-2 text-xs text-slate-400">{Math.ceil(req.expires_in / 60)} {tr(lang, 'min_left')}</div>
-        <div className="mt-4 space-y-2">
-          <Button tone="danger" disabled={busy} onClick={() => decide(false)}>{tr(lang, 'decline_tr')}</Button>
-          <Button tone="light" disabled={busy}>{tr(lang, 'call_back')} · {req.from_name}</Button>
-          <Button tone="ghost" disabled={busy} onClick={() => decide(true)}>{tr(lang, 'approve')}</Button>
-        </div>
       </div>
     </div>
   )
