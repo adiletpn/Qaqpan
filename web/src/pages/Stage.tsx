@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import BankApp from '../phone/BankApp'
 import { Icon } from '../ui'
-import { STEPS, useDirectorHotkeys, useStage } from './shared'
+import { ACTIONS, STEPS, useDirectorHotkeys, useStage } from './shared'
 
 const PHONES = [
   { id: 'aigerim', caption: 'Айгерим, 52', role: 'клиентка банка' },
@@ -63,6 +63,12 @@ export default function Stage() {
   const stage = useStage()
   const scale = useScale(820, 250)
   useDirectorHotkeys()
+  const [help, setHelp] = useState(false)
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === '?' || e.key.toLowerCase() === 'h') setHelp(v => !v) }
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  }, [])
   const events = (stage?.events ?? []).filter(e => e.kind !== 'reset').slice(-4).reverse()
   return (
     <div className="flex min-h-screen flex-col bg-slate-950 px-6 py-4 text-white">
@@ -92,6 +98,15 @@ export default function Stage() {
           </div>
         ))}
       </main>
+
+      {help && (
+        <div className="fixed bottom-6 right-6 z-50 w-96 rounded-2xl bg-slate-900/95 p-4 text-sm shadow-2xl ring-1 ring-white/10">
+          <div className="mb-2 font-bold">Горячие клавиши · H — скрыть</div>
+          {ACTIONS.map(a => (
+            <div key={a.key} className="flex gap-3 py-0.5"><kbd className="w-6 text-center font-mono text-emerald-400">{a.key}</kbd><span className="text-slate-300">{a.title}</span></div>
+          ))}
+        </div>
+      )}
 
       <footer className="mt-3 flex h-16 flex-col-reverse justify-start gap-1 overflow-hidden text-sm">
         {events.map((e, i) => (
