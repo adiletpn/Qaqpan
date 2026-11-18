@@ -1,7 +1,7 @@
 PY := .venv/bin/python
 PIP := .venv/bin/pip
 
-.PHONY: setup samples eval demo dev api web test types e2e lint
+.PHONY: setup samples eval demo dev api web test types e2e lint warm
 
 setup:          ## venv (Python 3.12) + deps + web deps
 	test -d .venv || python3.12 -m venv .venv
@@ -36,3 +36,6 @@ e2e:            ## click through the whole demo in headless Chrome (server must 
 
 lint:
 	cd web && npx eslint src
+
+warm:           ## fill data/llm_cache with Claude answers for the demo screenshots (needs ANTHROPIC_API_KEY)
+	$(PY) scripts/warm_llm_cache.py
