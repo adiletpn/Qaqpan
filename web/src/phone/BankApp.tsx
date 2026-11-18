@@ -1,25 +1,29 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, money, type CallVerify, type Lang, type Snapshot, type TransferView } from '../api'
 import { tr } from '../i18n'
-import { Card, Icon } from '../ui'
-import { CheckScreen, ResultScreen, SchemesScreen, TransferScreen, VictimScreen } from './screens'
-import { CallPill, FamilySheet, IncomingCall, SmsBanner, VerifySheet } from './overlays'
 import { useNativeCallSignal } from '../native'
+import { Card, Icon } from '../ui'
+import { FamilyScreen, FamilySheet, PushBanner } from './family'
+import { CallPill, IncomingCall, SmsBanner, VerifySheet } from './overlays'
+import { CheckScreen, ResultScreen, SchemesScreen, TransferScreen, VictimScreen } from './screens'
 
-export type Screen = 'home' | 'check' | 'transfer' | 'result' | 'victim' | 'schemes'
+export type Screen = 'home' | 'check' | 'transfer' | 'result' | 'victim' | 'schemes' | 'family'
 
 export default function BankApp({ clientId }: { clientId: string }) {
   const [snap, setSnap] = useState<Snapshot | null>(null)
+  const [offline, setOffline] = useState(false)
   const [screen, setScreen] = useState<Screen>('home')
   const [transfer, setTransfer] = useState<TransferView | null>(null)
   const [checkSample, setCheckSample] = useState<string | null>(null)
   const [verify, setVerify] = useState<CallVerify | null>(null)
   const [dismissedSms, setDismissedSms] = useState<string | null>(null)
+  const [openRequest, setOpenRequest] = useState<string | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
   const navSeq = useRef(0)
   useNativeCallSignal(clientId)
 
   const refresh = useCallback(async () => {
-    try { setSnap(await api.phone(clientId)) } catch { /* server restarting: keep last snapshot */ }
+    try { setSnap(await api.phone(clientId)); setOffline(false) } catch { setOffline(true) }
   }, [clientId])
 
   useEffect(() => {
@@ -27,6 +31,12 @@ export default function BankApp({ clientId }: { clientId: string }) {
     const t = setInterval(refresh, 900)
     return () => clearInterval(t)
   }, [refresh])
+
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 3500)
+    return () => clearTimeout(t)
+  }, [toast])
 
   // director-driven navigation (prefilled transfer, victim help); each nav fires once
   useEffect(() => {
@@ -41,28 +51,44 @@ export default function BankApp({ clientId }: { clientId: string }) {
   useEffect(() => {
     if (snap?.epoch === undefined) return
     if (epoch.current !== null && snap.epoch !== epoch.current) {
-      setScreen('home'); setTransfer(null); setVerify(null); setCheckSample(null); setDismissedSms(null)
+      setScreen('home'); setTransfer(null); setVerify(null); setCheckSample(null); setDismissedSms(null); setOpenRequest(null)
     }
     epoch.current = snap.epoch
   }, [snap?.epoch])
 
-  if (!snap) return <div className="grid h-full place-items-center text-slate-400">…</div>
+  if (!snap) {
+    return <div className="grid h-full place-items-center p-6 text-center text-sm text-slate-400">{offline ? 'Нет связи с сервером…' : '…'}</div>
+  }
   const lang: Lang = snap.client.lang
+  const L = (k: Parameters<typeof tr>[1]) => tr(lang, k)
   const liveTransfer = transfer ? snap.transfers.find(t => t.id === transfer.id) ?? transfer : null
   const newestSms = snap.sms[snap.sms.length - 1]
-  const showSms = newestSms && newestSms.id !== dismissedSms && screen !== 'check'
-  const ringing = snap.call && !snap.call.answered
+  const ringing = !!snap.call && !snap.call.answered
+  const request = openRequest ? snap.family_requests.find(r => r.id === openRequest) : undefined
+  const notice = snap.notices[snap.notices.length - 1]
+  const showSms = !!newestSms && newestSms.id !== dismissedSms && screen !== 'check' && !notice
 
-  const doVerify = async () => setVerify(await api.verifyCall(clientId))
+  const doVerify = async () => {
+    try { setVerify(await api.verifyCall(clientId)) } catch (e) { setToast(e instanceof Error ? e.message : L('error')) }
+  }
   const openCheck = (sampleId: string | null) => { setCheckSample(sampleId); setScreen('check'); if (newestSms) setDismissedSms(newestSms.id) }
-  const toggleLang = async () => { await api.setLang(clientId, lang === 'kk' ? 'ru' : 'kk'); refresh() }
+  const toggleLang = async () => { try { await api.setLang(clientId, lang === 'kk' ? 'ru' : 'kk'); refresh() } catch { /* keep */ } }
+  const openNotice = () => {
+    if (!notice) return
+    api.noticeSeen(clientId, notice.id).catch(() => undefined)
+    if (notice.kind === 'family_request' && notice.ref) setOpenRequest(notice.ref)
+    else setScreen('family')
+    refresh()
+  }
 
   return (
     <div className="relative flex h-full flex-col bg-slate-50 text-slate-900">
-      {snap.call?.answered && <CallPill call={snap.call} lang={lang} onVerify={doVerify} onEnd={() => api.endCall(clientId).then(refresh)} />}
+      {offline && <div className="z-20 bg-amber-500 px-3 py-1 text-center text-xs font-semibold text-white">Нет связи с сервером — повторяем…</div>}
+      {snap.call?.answered && <CallPill call={snap.call} lang={lang} onVerify={doVerify} onEnd={() => api.endCall(clientId).then(refresh).catch(() => undefined)} />}
       <div className="flex-1 overflow-y-auto overscroll-contain">
         {screen === 'home' && (
-          <Home snap={snap} lang={lang} onNav={setScreen} onVerify={doVerify} onCheck={openCheck} onToggleLang={toggleLang} />
+          <Home snap={snap} lang={lang} onNav={setScreen} onVerify={doVerify} onCheck={openCheck} onToggleLang={toggleLang}
+            onOpenRequest={setOpenRequest} />
         )}
         {screen === 'check' && <CheckScreen clientId={clientId} lang={lang} initialSample={checkSample} onBack={() => setScreen('home')} />}
         {screen === 'transfer' && (
@@ -75,21 +101,28 @@ export default function BankApp({ clientId }: { clientId: string }) {
         )}
         {screen === 'victim' && <VictimScreen clientId={clientId} lang={lang} transferId={transfer?.id} onBack={() => setScreen('home')} />}
         {screen === 'schemes' && <SchemesScreen lang={lang} onBack={() => setScreen('home')} />}
+        {screen === 'family' && <FamilyScreen clientId={clientId} lang={lang} shield={snap.shield} onBack={() => setScreen('home')} onChanged={refresh} />}
       </div>
 
       {showSms && !ringing && <SmsBanner sms={newestSms} lang={lang} belowCall={!!snap.call?.answered} onOpen={() => openCheck(newestSms.sample_id)} onClose={() => setDismissedSms(newestSms.id)} />}
-      {verify && <VerifySheet result={verify} lang={lang} onClose={() => setVerify(null)} />}
-      {snap.family_requests[0] && <FamilySheet req={snap.family_requests[0]} lang={lang} onDone={refresh} />}
-      {ringing && snap.call && (
-        <IncomingCall call={snap.call} lang={lang} onAccept={() => api.answerCall(clientId).then(refresh)}
-          onDecline={() => api.endCall(clientId).then(refresh)} />
+      {notice && !ringing && !request && (
+        <PushBanner notice={notice} lang={lang} onOpen={openNotice} onClose={() => { api.noticeSeen(clientId, notice.id).then(refresh).catch(() => undefined) }} />
       )}
+      {verify && <VerifySheet result={verify} lang={lang} onClose={() => setVerify(null)} />}
+      {request && <FamilySheet req={request} lang={lang} onClose={() => setOpenRequest(null)}
+        onDone={() => { setOpenRequest(null); refresh() }} />}
+      {ringing && snap.call && (
+        <IncomingCall call={snap.call} lang={lang} onAccept={() => api.answerCall(clientId).then(refresh).catch(() => undefined)}
+          onDecline={() => api.endCall(clientId).then(refresh).catch(() => undefined)} />
+      )}
+      {toast && <div className="absolute inset-x-4 bottom-4 z-50 rounded-2xl bg-slate-900 p-3 text-center text-sm text-white shadow-xl">{toast}</div>}
     </div>
   )
 }
 
-function Home({ snap, lang, onNav, onVerify, onCheck, onToggleLang }: {
-  snap: Snapshot; lang: Lang; onNav: (s: Screen) => void; onVerify: () => void; onCheck: (s: string | null) => void; onToggleLang: () => void
+function Home({ snap, lang, onNav, onVerify, onCheck, onToggleLang, onOpenRequest }: {
+  snap: Snapshot; lang: Lang; onNav: (s: Screen) => void; onVerify: () => void; onCheck: (s: string | null) => void
+  onToggleLang: () => void; onOpenRequest: (id: string) => void
 }) {
   const L = (k: Parameters<typeof tr>[1]) => tr(lang, k)
   const [schemes, setSchemes] = useState<{ id: string; title: string }[]>([])
@@ -100,6 +133,8 @@ function Home({ snap, lang, onNav, onVerify, onCheck, onToggleLang }: {
     { icon: 'phone', label: L('bank_calling'), on: onVerify, tone: 'bg-white text-teal-800' },
     { icon: 'help', label: L('scammed'), on: () => onNav('victim'), tone: 'bg-white text-red-700' },
   ]
+  const shield = snap.shield
+  const pending = snap.family_requests[0]
   return (
     <div className="space-y-4 px-4 pb-8 pt-3">
       <div className="flex items-center justify-between">
@@ -115,12 +150,24 @@ function Home({ snap, lang, onNav, onVerify, onCheck, onToggleLang }: {
         </button>
       </div>
 
+      {pending && (
+        <button onClick={() => onOpenRequest(pending.id)} className="flex w-full animate-pulse items-center gap-3 rounded-2xl bg-red-600 p-3 text-left text-white shadow-lg">
+          <Icon name="family" className="h-6 w-6 shrink-0" />
+          <span className="text-sm font-semibold leading-snug">{pending.headline}</span>
+          <span className="ml-auto">→</span>
+        </button>
+      )}
+
       <div className="rounded-3xl bg-gradient-to-br from-teal-700 to-teal-900 p-5 text-white shadow-lg">
         <div className="text-sm text-teal-100">{L('balance')}</div>
         <div className="mt-1 text-3xl font-bold tracking-tight">{money(snap.client.balance)}</div>
         <div className="mt-4 flex items-center gap-2 text-xs text-teal-100">
-          <Icon name="shield" className="h-4 w-4" /> {L('qalqan_on')}
-          {snap.client.guardian && <span className="ml-auto rounded-full bg-white/15 px-2 py-0.5">{L('family_shield')}: {snap.client.guardian}</span>}
+          <Icon name="shield" className="h-4 w-4 shrink-0" /> {L('qalqan_on')}
+          <button onClick={() => onNav('family')} className="ml-auto rounded-full bg-white/15 px-2.5 py-1 text-left font-semibold text-white active:bg-white/25">
+            {shield.role === 'ward' ? `${L('family_shield')}: ${shield.guardian_name}`
+              : shield.role === 'guardian' ? `${L('you_protect')}: ${shield.wards.map(w => w.title).join(', ')}`
+                : `${L('family_shield')} →`}
+          </button>
         </div>
       </div>
 
@@ -153,12 +200,12 @@ function Home({ snap, lang, onNav, onVerify, onCheck, onToggleLang }: {
         <Card>
           <div className="mb-2 text-sm font-semibold text-slate-500">{L('recent')}</div>
           {snap.transfers.slice().reverse().map(t => (
-            <div key={t.id} className="flex items-center justify-between border-t border-slate-100 py-2 text-sm first:border-0">
-              <div>
-                <div className="font-medium">{t.holder}</div>
-                <div className="text-xs text-slate-500">{t.title}</div>
+            <div key={t.id} className="flex items-center justify-between gap-3 border-t border-slate-100 py-2 text-sm first:border-0">
+              <div className="min-w-0">
+                <div className="truncate font-medium">{t.holder}</div>
+                <div className={`text-xs ${t.status === 'completed' ? 'text-slate-500' : t.status === 'cancelled' ? 'text-emerald-700' : 'text-amber-700'}`}>{t.title}</div>
               </div>
-              <div className={t.status === 'completed' ? 'font-semibold' : 'font-semibold text-slate-400 line-through'}>−{money(t.amount)}</div>
+              <div className={`shrink-0 font-semibold ${t.status === 'completed' ? '' : t.status === 'cancelled' ? 'text-slate-400 line-through' : 'text-amber-700'}`}>−{money(t.amount)}</div>
             </div>
           ))}
         </Card>
