@@ -39,6 +39,7 @@ export interface FamilyRequest {
 }
 export interface Sms { id: string; sender: string; text: string; sample_id: string | null; ts: number }
 export interface Snapshot {
+  epoch: number
   client: { id: string; name: string; short: string; lang: Lang; balance: number; avatar: string; guardian: string | null }
   call: { number: string; label: string; answered: boolean; since: number } | null
   sms: Sms[]

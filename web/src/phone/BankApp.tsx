@@ -36,13 +36,15 @@ export default function BankApp({ clientId }: { clientId: string }) {
     if (nav.screen === 'transfer' || nav.screen === 'victim') setScreen(nav.screen)
   }, [snap?.nav])
 
-  // a full reset on the server clears transfers: go back home
-  const lastTransferCount = useRef(0)
+  // demo reset on the server: every phone returns to a clean home screen
+  const epoch = useRef<number | null>(null)
   useEffect(() => {
-    const n = snap?.transfers.length ?? 0
-    if (n < lastTransferCount.current && screen !== 'home') { setScreen('home'); setTransfer(null); setVerify(null) }
-    lastTransferCount.current = n
-  }, [snap?.transfers.length, screen])
+    if (snap?.epoch === undefined) return
+    if (epoch.current !== null && snap.epoch !== epoch.current) {
+      setScreen('home'); setTransfer(null); setVerify(null); setCheckSample(null); setDismissedSms(null)
+    }
+    epoch.current = snap.epoch
+  }, [snap?.epoch])
 
   if (!snap) return <div className="grid h-full place-items-center text-slate-400">…</div>
   const lang: Lang = snap.client.lang
