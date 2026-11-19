@@ -178,7 +178,7 @@ class State:
             def h(ru, kk, amount, ago_min):
                 return {"title": {"ru": ru, "kk": kk}, "amount": amount, "ago_min": ago_min}
             self.history: dict[str, list[dict]] = {
-                "aigerim": [h("Magnum Cash&Carry", "Magnum Cash&Carry", -12_450, 190), h("Пенсионный перевод от дочери", "Қызынан аударым", 50_000, 1500),
+                "aigerim": [h("Magnum Cash&Carry", "Magnum Cash&Carry", -12_450, 190), h("Перевод от дочери", "Қызынан аударым", 50_000, 1500),
                             h("Казахтелеком · интернет", "Қазақтелеком · интернет", -7_990, 2900), h("Аптека «Biosfera»", "«Biosfera» дәріханасы", -4_320, 4300)],
                 "erzhan": [h("Зарплата", "Жалақы", 512_000, 1450), h("Yandex Go", "Yandex Go", -2_350, 95), h("Small · продукты", "Small · азық-түлік", -8_740, 300),
                            h("Kcell · связь", "Kcell · байланыс", -4_500, 2800)],

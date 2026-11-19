@@ -478,10 +478,11 @@ def victim_help(req: VictimRequest) -> VictimHelp:
     c = _client(req.client_id)
     lang = req.lang or c.lang
     amount = account = None
-    if req.transfer_id and req.transfer_id in STATE.transfers:
-        tr = STATE.transfers[req.transfer_id]
-        if tr.client_id == c.id:
-            amount, account = tr.amount, STATE.accounts[tr.account].display
+    tr = STATE.transfers.get(req.transfer_id or "")
+    if tr is None or tr.client_id != c.id:  # opened from the home screen: use the latest suspicious transfer
+        tr = next((x for x in reversed(list(STATE.transfers.values())) if x.client_id == c.id and x.level >= 2), None)
+    if tr is not None and tr.client_id == c.id:
+        amount, account = tr.amount, STATE.accounts[tr.account].display
     call = STATE.calls.get(c.id)
     phone_no = STATE.last_call_number.get(c.id) or (call.number if call and call.number != NATIVE_NUMBER else None)
     scheme = "полиции / банка" if lang == "ru" else "полиция / банк"

@@ -181,3 +181,9 @@ def test_history_is_localised():
     c.post("/api/phone/aigerim/lang/kk")
     titles = [h["title"] for h in c.get("/api/phone/aigerim").json()["history"]]
     assert "Қызынан аударым" in titles
+
+
+def test_victim_help_uses_latest_suspicious_transfer():
+    scam_transfer_to_family()
+    h = c.post("/api/victim/help", json={"client_id": "aigerim", "lang": "ru"}).json()
+    assert "900 000" in h["statement"]["body"] and "KZ86" in h["statement"]["body"]
