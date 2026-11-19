@@ -1,6 +1,8 @@
+import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import { api, money, type CheckResult, type Lang, type Sample, type SchemeCard, type Snapshot, type TransferView, type VictimHelp } from '../api'
 import { tr } from '../i18n'
+import { buzz, EASE, sleep, SPRING } from '../motion'
 import { Button, Card, Header, Icon, Spinner } from '../ui'
 
 type K = Parameters<typeof tr>[1]
@@ -45,10 +47,12 @@ export function CheckScreen({ clientId, lang, initialSample, onBack }: { clientI
   const run = async () => {
     setBusy(true); setErr(null); setRes(null)
     try {
-      setRes(await api.check({
+      const [r] = await Promise.all([api.check({
         client_id: clientId, lang, text: text.trim() || undefined, sample_id: sample ?? undefined,
         image_b64: upload?.b64, media_type: upload?.type,
-      }))
+      }), sleep(450)])
+      if (r.verdict !== 'safe') buzz([60, 40, 60])
+      setRes(r)
     } catch (e) { setErr(e instanceof Error ? e.message : L('error')) } finally { setBusy(false) }
   }
 
@@ -98,7 +102,8 @@ function Verdict({ res, lang }: { res: CheckResult; lang: Lang }) {
     safe: { bg: 'bg-emerald-600', ring: 'ring-emerald-200', icon: 'check', label: L('safe') },
   }[res.verdict]
   return (
-    <div className={`animate-[pop_.25s_ease-out] overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ${cfg.ring}`}>
+    <motion.div initial={{ opacity: 0, y: 16, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={SPRING}
+      className={`overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ${cfg.ring}`}>
       <div className={`flex items-center gap-3 p-4 text-white ${cfg.bg}`}>
         <Icon name={cfg.icon} className="h-7 w-7" />
         <div>
@@ -108,12 +113,15 @@ function Verdict({ res, lang }: { res: CheckResult; lang: Lang }) {
       </div>
       <div className="space-y-3 p-4">
         <ul className="space-y-1.5 text-sm">
-          {res.reasons.map((r, i) => <li key={i} className="flex gap-2"><span className="text-slate-400">•</span>{r.text}</li>)}
+          {res.reasons.map((r, i) => (
+            <motion.li key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 + i * 0.08, duration: 0.3, ease: EASE }}
+              className="flex gap-2"><span className="text-slate-400">•</span>{r.text}</motion.li>
+          ))}
         </ul>
         <div className="rounded-2xl bg-slate-50 p-3 text-sm font-medium">{res.advice}</div>
         <div className="text-[11px] text-slate-400">{res.source === 'rules' ? L('via_rules') : L('via_ai')}</div>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -142,15 +150,22 @@ export function TransferScreen({ clientId, lang, prefill, balance, onBack, onDon
   }, [])
 
   const amt = Number(amount.replace(/\s/g, ''))
+  const [analyzing, setAnalyzing] = useState(false)
   const submit = async () => {
-    setBusy(true); setErr(null)
+    setBusy(true); setErr(null); setAnalyzing(true)
     try {
-      onDone(await api.transfer({ client_id: clientId, account, amount: amt, context: { pasted: pasted.current, app_switches: switches.current } }))
-    } catch (e) { setErr(e instanceof Error ? e.message : L('error')) } finally { setBusy(false) }
+      // the check takes milliseconds; a short visible analysis tells the client what Qaqpan looked at
+      const [t] = await Promise.all([
+        api.transfer({ client_id: clientId, account, amount: amt, context: { pasted: pasted.current, app_switches: switches.current } }),
+        sleep(1400),
+      ])
+      onDone(t)
+    } catch (e) { setErr(e instanceof Error ? e.message : L('error')); setAnalyzing(false) } finally { setBusy(false) }
   }
 
   return (
-    <div className="pb-8">
+    <div className="relative min-h-full pb-8">
+      <AnimatePresence>{analyzing && <Analysis key="an" lang={lang} />}</AnimatePresence>
       <Header title={L('transfer')} onBack={onBack} />
       <div className="space-y-4 px-4">
         <Card>
@@ -178,6 +193,32 @@ export function TransferScreen({ clientId, lang, prefill, balance, onBack, onDon
   )
 }
 
+function Analysis({ lang }: { lang: Lang }) {
+  const L = (k: K) => tr(lang, k)
+  const items: K[] = ['chk_recipient', 'chk_call', 'chk_amount']
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-50/95 px-8 backdrop-blur-sm">
+      <div className="relative grid h-20 w-20 place-items-center">
+        <motion.span className="absolute inset-0 rounded-full border-4 border-teal-200 border-t-teal-700"
+          animate={{ rotate: 360 }} transition={{ duration: 0.9, repeat: Infinity, ease: 'linear' }} />
+        <Icon name="shield" className="h-9 w-9 text-teal-700" />
+      </div>
+      <div className="mt-5 text-lg font-bold">{L('analyzing')}</div>
+      <div className="mt-4 w-full space-y-2.5">
+        {items.map((k, i) => (
+          <motion.div key={k} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 + i * 0.35, duration: 0.3, ease: EASE }}
+            className="flex items-center gap-3 rounded-2xl bg-white px-3 py-2.5 text-sm shadow-sm ring-1 ring-slate-100">
+            <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.45 + i * 0.35, ...SPRING }}
+              className="grid h-5 w-5 place-items-center rounded-full bg-teal-700 text-white"><Icon name="check" className="h-3 w-3" /></motion.span>
+            {L(k)}
+          </motion.div>
+        ))}
+      </div>
+    </motion.div>
+  )
+}
+
 export function ResultScreen({ clientId, lang, transfer: t, onUpdate, onHome, onVictim }: {
   clientId: string; lang: Lang; transfer: TransferView; onUpdate: (t: TransferView) => void; onHome: () => void; onVictim: () => void
 }) {
@@ -193,6 +234,11 @@ export function ResultScreen({ clientId, lang, transfer: t, onUpdate, onHome, on
   const act = (f: () => Promise<TransferView>) => run(async () => onUpdate(await f()))
   const complain = () => run(async () => setComplained((await api.complain(clientId, t.id)).message))
 
+  useEffect(() => {
+    if (t.status === 'questions' || t.status === 'held') buzz([70, 50, 70])
+    else if (t.status === 'cancelled') buzz(30)
+  }, [t.status])
+
   const look = {
     completed: { bg: 'bg-emerald-600', icon: 'check' }, warning: { bg: 'bg-amber-500', icon: 'alert' },
     questions: { bg: 'bg-amber-500', icon: 'shield' }, awaiting_family: { bg: 'bg-teal-700', icon: 'family' },
@@ -200,11 +246,14 @@ export function ResultScreen({ clientId, lang, transfer: t, onUpdate, onHome, on
   }[t.status]
 
   return (
-    <div className="px-4 pb-8 pt-6">
+    <AnimatePresence mode="wait" initial={false}>
+    <motion.div key={t.status} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.28, ease: EASE }} className="px-4 pb-8 pt-6">
       <div className="text-center">
-        <div className={`mx-auto grid h-20 w-20 animate-[pop_.3s_ease-out] place-items-center rounded-full text-white shadow-lg ${look.bg}`}>
+        <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ ...SPRING, delay: 0.05 }}
+          className={`mx-auto grid h-20 w-20 place-items-center rounded-full text-white shadow-lg ${look.bg}`}>
           {t.status === 'awaiting_family' ? <span className="h-8 w-8 animate-spin rounded-full border-4 border-white/30 border-t-white" /> : <Icon name={look.icon} className="h-10 w-10" />}
-        </div>
+        </motion.div>
         <h2 className="mt-4 text-2xl font-bold leading-tight">{t.title}</h2>
         <div className="mt-1 text-sm text-slate-500">{money(t.amount)} → {t.holder}</div>
         {t.message && <p className="mt-3 text-[15px] leading-relaxed text-slate-700">{t.message}</p>}
@@ -215,17 +264,19 @@ export function ResultScreen({ clientId, lang, transfer: t, onUpdate, onHome, on
       {t.status === 'questions' && (
         <div className="mt-5 space-y-2">
           {t.questions.map((q, i) => (
-            <Card key={q.id} className="!p-3">
+            <motion.div key={q.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 + i * 0.07, duration: 0.3, ease: EASE }}>
+            <Card className="!p-3">
               <div className="text-sm font-medium">{q.text}</div>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 {[true, false].map(v => (
                   <button key={String(v)} onClick={() => setAnswers(a => a.map((x, j) => (j === i ? v : x)))}
-                    className={`rounded-xl py-2 text-sm font-semibold ring-1 ${answers[i] === v ? (v ? 'bg-red-600 text-white ring-red-600' : 'bg-slate-800 text-white ring-slate-800') : 'bg-white text-slate-700 ring-slate-200'}`}>
+                    className={`rounded-xl py-2 text-sm font-semibold ring-1 transition-all duration-150 active:scale-95 ${answers[i] === v ? (v ? 'bg-red-600 text-white ring-red-600' : 'bg-slate-800 text-white ring-slate-800') : 'bg-white text-slate-700 ring-slate-200'}`}>
                     {v ? L('yes') : L('no')}
                   </button>
                 ))}
               </div>
             </Card>
+            </motion.div>
           ))}
           <Button disabled={busy || answers.some(a => a === null)} onClick={() => act(() => api.answers(t.id, answers as boolean[]))}>{L('answer')}</Button>
           <Button tone="ghost" disabled={busy} onClick={() => act(() => api.cancel(t.id))}>{L('cancel')}</Button>
@@ -249,7 +300,7 @@ export function ResultScreen({ clientId, lang, transfer: t, onUpdate, onHome, on
       {(t.status === 'cancelled' || t.status === 'held' || t.status === 'escalated') && (
         <div className="mt-6 space-y-2">
           {complained
-            ? <div className="animate-[pop_.25s_ease-out] rounded-2xl bg-emerald-50 p-3 text-center text-sm font-medium text-emerald-800 ring-1 ring-emerald-200">{complained}</div>
+            ? <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={SPRING} className="rounded-2xl bg-emerald-50 p-3 text-center text-sm font-medium text-emerald-800 ring-1 ring-emerald-200">{complained}</motion.div>
             : <Button tone="danger" disabled={busy} onClick={complain}>{L('complain')}</Button>}
           <Button tone="light" onClick={onHome}>{L('home')}</Button>
           <Button tone="ghost" onClick={onVictim}>{L('already_sent')}</Button>
@@ -257,7 +308,8 @@ export function ResultScreen({ clientId, lang, transfer: t, onUpdate, onHome, on
       )}
 
       {t.status === 'completed' && <div className="mt-6"><Button onClick={onHome}>{L('home')}</Button></div>}
-    </div>
+    </motion.div>
+    </AnimatePresence>
   )
 }
 
