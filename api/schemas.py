@@ -98,3 +98,14 @@ class NativeCallSignal(BaseModel):
     """Sent by the native wrapper (Android AudioManager.getMode / iOS CXCallObserver): only the fact of a call."""
 
     on_call: bool
+
+
+class ChatMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=2000)
+
+
+class AssistantRequest(BaseModel):
+    client_id: str
+    messages: list[ChatMessage] = Field(min_length=1, max_length=20)
+    lang: Lang | None = None

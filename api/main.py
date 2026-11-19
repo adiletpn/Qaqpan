@@ -20,9 +20,9 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import director, family, llm, msgcheck, schemes, victim
+from . import assistant, director, family, llm, msgcheck, schemes, victim
 from .risk import assess
-from .schemas import (AnswersRequest, CallVerifyRequest, CallVerifyResult, CheckResult, ComplaintRequest,
+from .schemas import (AnswersRequest, AssistantRequest, CallVerifyRequest, CallVerifyResult, CheckResult, ComplaintRequest,
                       ComplaintResult, FamilyDecision, MessageCheckRequest, NativeCallSignal, Question,
                       TransferRequest, TransferView, VictimHelp, VictimRequest)
 from .state import (BANK_NUMBER, FAMILY_TIMEOUT_S, NATIVE_NUMBER, STATE, Call, FamilyRequest, Transfer, digits)
@@ -487,6 +487,15 @@ def victim_help(req: VictimRequest) -> VictimHelp:
     phone_no = STATE.last_call_number.get(c.id) or (call.number if call and call.number != NATIVE_NUMBER else None)
     scheme = "полиции / банка" if lang == "ru" else "полиция / банк"
     return victim.build(lang, c.name, amount, account, phone_no, scheme, req.story)
+
+
+@app.post("/api/assistant", response_model=assistant.AssistantReply)
+def ask_assistant(req: AssistantRequest) -> assistant.AssistantReply:
+    c = _client(req.client_id)
+    lang = req.lang or c.lang
+    res = assistant.answer(c.id, [m.model_dump() for m in req.messages], lang)
+    STATE.emit("assistant", c.id, f"{c.short} спросил(а) помощника Qaqpan: «{req.messages[-1].content[:60]}»")
+    return res
 
 
 # ---------------------------------------------------------------------------- stage & director

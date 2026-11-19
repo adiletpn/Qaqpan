@@ -89,15 +89,20 @@ class Unavailable(Exception):
     """Live call not possible right now (no key, network, rate limit, bad answer)."""
 
 
-def cached_call(kind: str, payload: dict, model_cls: type[M], call: Callable[[], M | None]) -> tuple[M | None, str]:
-    """Returns (result, source) where source is 'cache' | 'llm' | 'unavailable'."""
+def cached_call(kind: str, payload: dict, model_cls: type[M], call: Callable[[], M | None],
+                allow_in_demo: bool = False) -> tuple[M | None, str]:
+    """Returns (result, source) where source is 'cache' | 'llm' | 'unavailable'.
+
+    allow_in_demo: the conversational assistant may call the model live even on stage — it has an
+    offline fallback, so a network failure costs nothing but a simpler answer.
+    """
     path = CACHE_DIR / f"{_key(kind, payload)}.json"
     if path.exists():
         try:
             return model_cls.model_validate_json(path.read_text()), "cache"
         except ValidationError:  # stale cache entry: ignore and recompute
             log.warning("bad cache entry %s", path.name)
-    if demo_mode() or _disabled_reason or not _api_key() or not _allow_live_call():
+    if (demo_mode() and not allow_in_demo) or _disabled_reason or not _api_key() or not _allow_live_call():
         return None, "unavailable"
     try:
         result = call()
@@ -167,3 +172,19 @@ def parse(system: str, text: str | None, model_cls: type[M], example: str, image
         return model_cls.model_validate_json(_extract_json(raw))
     except ValidationError as e:
         raise Unavailable(f"answer does not match schema: {e.errors()[:2]}") from e
+
+
+def chat(system: str, history: list[dict], max_tokens: int = 400) -> str | None:
+    """Free-text conversation turn (assistant). history: [{"role": "user"|"assistant", "content": str}]."""
+    body = {
+        "model": MODEL,
+        "max_tokens": max_tokens,
+        "temperature": 0.4,
+        "messages": [{"role": "system", "content": system}] + [
+            {"role": m["role"], "content": m["content"]} for m in history if m.get("role") in ("user", "assistant")],
+    }
+    data = _post(body)
+    choice = (data.get("choices") or [{}])[0]
+    if choice.get("finish_reason") == "content_filter":
+        return None
+    return (choice.get("message") or {}).get("content")
