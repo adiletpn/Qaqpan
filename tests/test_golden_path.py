@@ -55,7 +55,7 @@ def test_golden_path():
 
     # 4 «Получили»: her complaint marks the account -> Madina is protected 10 seconds later
     comp = c.post("/api/complaints", json={"client_id": "aigerim", "transfer_id": tr["id"]}).json()
-    assert comp["account_complaints"] == 1
+    assert comp["account_complaints"] == 2  # the son's «no» + the mother's complaint
     m = c.post("/api/transfers", json={"client_id": "madina", "account": DANIYAR, "amount": 150_000}).json()
     assert m["status"] == "questions" and "жалоб" in m["message"]
     m = c.post(f"/api/transfers/{m['id']}/answers", json={"answers": [True, True, False]}).json()

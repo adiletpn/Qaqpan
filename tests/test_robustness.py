@@ -160,3 +160,24 @@ def test_shield_info_roles():
     assert c.get("/api/phone/aigerim").json()["shield"]["role"] == "ward"
     assert c.get("/api/phone/erzhan").json()["shield"]["role"] == "guardian"
     assert c.get("/api/phone/madina").json()["shield"]["role"] == "none"
+
+
+def test_guardian_decline_alone_protects_the_next_client():
+    scam_transfer_to_family()
+    rid = c.get("/api/phone/erzhan").json()["family_requests"][0]["id"]
+    c.post(f"/api/family/requests/{rid}/decision", json={"approve": False})
+    m = c.post("/api/transfers", json={"client_id": "madina", "account": SCAM, "amount": 150_000}).json()
+    assert m["status"] == "questions" and "жалоб" in m["message"]
+
+
+def test_director_navigation_is_not_replayed_on_reload():
+    c.post("/api/director/transfer_aigerim")
+    assert c.get("/api/phone/aigerim").json()["nav"]["screen"] == "transfer"
+    STATE.nav["aigerim"]["seq"] -= 60_000  # a minute later the page is reopened
+    assert c.get("/api/phone/aigerim").json()["nav"] is None
+
+
+def test_history_is_localised():
+    c.post("/api/phone/aigerim/lang/kk")
+    titles = [h["title"] for h in c.get("/api/phone/aigerim").json()["history"]]
+    assert "Қызынан аударым" in titles
