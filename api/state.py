@@ -174,6 +174,17 @@ class State:
                 "madina": Client("madina", "Мадина Каримова", "Мадина", 34, "Алматы", "ru", 610_000,
                                  "+7 705 555 76 02", "МК", {digits("KZ21 8562 0000 0390 5512")}),
             }
+            # ordinary account history so the app looks lived-in (static demo data)
+            def h(ru, kk, amount, ago_min):
+                return {"title": {"ru": ru, "kk": kk}, "amount": amount, "ago_min": ago_min}
+            self.history: dict[str, list[dict]] = {
+                "aigerim": [h("Magnum Cash&Carry", "Magnum Cash&Carry", -12_450, 190), h("Пенсионный перевод от дочери", "Қызынан аударым", 50_000, 1500),
+                            h("Казахтелеком · интернет", "Қазақтелеком · интернет", -7_990, 2900), h("Аптека «Biosfera»", "«Biosfera» дәріханасы", -4_320, 4300)],
+                "erzhan": [h("Зарплата", "Жалақы", 512_000, 1450), h("Yandex Go", "Yandex Go", -2_350, 95), h("Small · продукты", "Small · азық-түлік", -8_740, 300),
+                           h("Kcell · связь", "Kcell · байланыс", -4_500, 2800)],
+                "madina": [h("Зарплата", "Жалақы", 390_000, 2600), h("Wildberries", "Wildberries", -18_900, 220), h("Starbucks", "Starbucks", -2_100, 40),
+                           h("Сергек · штраф оплачен", "Сергек · айыппұл төленді", -14_768, 3900)],
+            }
             self.links: dict[str, FamilyLink] = {
                 "aigerim": FamilyLink("aigerim", "erzhan", {"ru": "Мама", "kk": "Анаңыз"},
                                       {"ru": "маме", "kk": "анаңызға"}, {"ru": "Маму", "kk": "Анаңызды"},
