@@ -37,7 +37,7 @@ e2e:            ## click through the whole demo in headless Chrome (server must 
 lint:
 	cd web && npx eslint src
 
-warm:           ## fill data/llm_cache with Claude answers for the demo screenshots (needs ANTHROPIC_API_KEY)
+warm:           ## fill data/llm_cache with AI answers for the demo screenshots (needs XKIRO_API_KEY in .env)
 	$(PY) scripts/warm_llm_cache.py
 
 video:          ## record the narrated demo video (server must run on :8000) -> video/qaqpan_demo.mp4

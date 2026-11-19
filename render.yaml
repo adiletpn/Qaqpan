@@ -5,7 +5,7 @@ services:
     plan: starter
     healthCheckPath: /api/health
     envVars:
-      - key: ANTHROPIC_API_KEY
+      - key: XKIRO_API_KEY
         sync: false
       # the presenter opens /director?key=<value> once; without it nobody else can reset or drive the demo
       - key: QAQPAN_DIRECTOR_KEY

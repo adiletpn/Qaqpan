@@ -1,6 +1,6 @@
 """Accuracy of the message checker on data/messages_eval.jsonl -> docs/METRICS.md.
 
-Flagged = verdict in {scam, suspicious}. Reports rules-only always, and Claude when it is reachable.
+Flagged = verdict in {scam, suspicious}. Reports rules-only always, and the AI (xKiro) when it is reachable.
 The set is small and partly constructed: it shows behaviour, not production accuracy.
 """
 

@@ -2,7 +2,7 @@
 
 Two stages:
   1. rules — instant, offline, explainable; tuned on Kazakhstan schemes (RU + KK);
-  2. Claude (vision) — reads screenshots and catches what rules miss; cached on disk.
+  2. AI via xKiro (vision) — reads screenshots and catches what rules miss; cached on disk.
 If the model is unavailable the rules verdict is returned, so the feature never goes dark.
 """
 

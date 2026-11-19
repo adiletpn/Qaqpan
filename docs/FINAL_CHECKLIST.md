@@ -2,9 +2,9 @@
 
 ## До 26.11 — подача
 
-- [ ] `ANTHROPIC_API_KEY` → `make warm` → закоммитить `data/llm_cache/` (ИИ-ответы для демо без интернета)
+- [x] Ключ xKiro в `.env` → `make warm` → кэш ответов ИИ для всех демо-скриншотов закоммичен
 - [ ] Вычитка казахских текстов носителем: `api/texts.py`, `web/src/i18n.ts`, `api/msgcheck.py` (REASON_TEXT, ADVICE), `api/schemes.py`, `api/victim.py`
-- [ ] Деплой: Render → New Blueprint → этот репозиторий (`render.yaml`), тариф starter, переменная `ANTHROPIC_API_KEY`
+- [ ] Деплой: Render → New Blueprint → этот репозиторий (`render.yaml`), тариф starter, переменная `XKIRO_API_KEY`
 - [ ] Скопировать сгенерированный `QAQPAN_DIRECTOR_KEY` и один раз открыть `/director?key=…` и `/stage?key=…` на устройствах ведущего
 - [ ] Проверить ссылку: `/stage`, `/director`, `/phone/aigerim` с телефона
 - [ ] Видео демо 3 минуты с субтитрами (запись экрана `/stage` по `DEMO_SCENARIO.md`) — запасной вариант
