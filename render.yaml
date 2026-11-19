@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: qalqan
+    name: qaqpan
     runtime: docker
     plan: starter
     healthCheckPath: /api/health
@@ -8,9 +8,9 @@ services:
       - key: ANTHROPIC_API_KEY
         sync: false
       # the presenter opens /director?key=<value> once; without it nobody else can reset or drive the demo
-      - key: QALQAN_DIRECTOR_KEY
+      - key: QAQPAN_DIRECTOR_KEY
         generateValue: true
-      - key: QALQAN_DEMO
+      - key: QAQPAN_DEMO
         value: "0"
-      - key: QALQAN_LLM_DAILY
+      - key: QAQPAN_LLM_DAILY
         value: "500"

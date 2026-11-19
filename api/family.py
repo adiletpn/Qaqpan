@@ -2,7 +2,7 @@
 
 Design rules:
   * the guardian is at work and reads this in 3 seconds — plain words, not risk codes;
-  * the timeline shows only what Qalqan knows (checked messages, the fact of a call, call checks,
+  * the timeline shows only what Qaqpan knows (checked messages, the fact of a call, call checks,
     the transfer), never the content of calls or SMS the client did not check;
   * no answer in 15 minutes -> a bank employee calls the ward (never auto-approve, never block forever);
   * disabling the shield takes 24 hours and the guardian is notified — a scammer cannot say «turn it off».
@@ -53,9 +53,9 @@ def request_view(fr: FamilyRequest, lang: Lang) -> dict:
         else:
             explanation = f"{title} {recipient} {amount}{share} аударып жатыр."
         if said_yes:
-            explanation += " Qalqan сұрақтарына берілген жауаптарда қысым белгілері бар: қоңырау шалып, ақша аударуды сұрайды."
+            explanation += " Qaqpan сұрақтарына берілген жауаптарда қысым белгілері бар: қоңырау шалып, ақша аударуды сұрайды."
         elif coached:
-            explanation += (" Qalqan сұрақтарына жауап — «жоқ», бірақ қоңырау жалғасуда: алаяқтар жиі не деп жауап беру "
+            explanation += (" Qaqpan сұрақтарына жауап — «жоқ», бірақ қоңырау жалғасуда: алаяқтар жиі не деп жауап беру "
                             "керектігін айтып отырады.")
         advice = (f"{dat.capitalize()} әдеттегі нөміріне қоңырау шалып, телефонды қоюын сұраңыз. Сіздің жауабыңызсыз ақша "
                   f"кетпейді. 15 минут ішінде жауап бермесеңіз, {dat} банк қызметкері хабарласады.")
@@ -72,9 +72,9 @@ def request_view(fr: FamilyRequest, lang: Lang) -> dict:
         else:
             explanation = f"{title} переводит {amount}{share} {recipient}."
         if said_yes:
-            explanation += " В ответах на вопросы Qalqan есть признаки давления: звонят и просят перевести деньги."
+            explanation += " В ответах на вопросы Qaqpan есть признаки давления: звонят и просят перевести деньги."
         elif coached:
-            explanation += (" На вопросы Qalqan ответ — «нет», но звонок продолжается: мошенники часто подсказывают, "
+            explanation += (" На вопросы Qaqpan ответ — «нет», но звонок продолжается: мошенники часто подсказывают, "
                             "что отвечать.")
         advice = (f"Позвоните {dat} на обычный номер и попросите положить трубку. Без вашего ответа деньги не уйдут. "
                   f"Если не ответите за 15 минут, {dat} позвонит сотрудник банка.")
@@ -93,7 +93,7 @@ def notify_request(fr: FamilyRequest) -> None:
     link = STATE.links[fr.from_client]
     amount = _fmt(STATE.transfers[fr.transfer_id].amount)
     STATE.notify(fr.guardian_id, "family_request",
-                 {"ru": "Qalqan · Семейный щит", "kk": "Qalqan · Отбасылық қалқан"},
+                 {"ru": "Qaqpan · Семейный щит", "kk": "Qaqpan · Отбасылық қалқан"},
                  {"ru": f"{link.ward_title_acc['ru']}, возможно, обманывают. Перевод {amount} остановлен до вашего решения",
                   "kk": f"{link.ward_title_acc['kk']} алаяқтар алдауы мүмкін. {amount} аударым сіздің шешіміңізге дейін тоқтатылды"},
                  ref=fr.id)
@@ -119,7 +119,7 @@ def request_disable(ward_id: str) -> FamilyLink:
         link.disable_at = time.time() + SHIELD_DISABLE_DELAY_S
         ward = STATE.clients[ward_id]
         STATE.notify(link.guardian_id, "shield_disable",
-                     {"ru": "Qalqan · Семейный щит", "kk": "Qalqan · Отбасылық қалқан"},
+                     {"ru": "Qaqpan · Семейный щит", "kk": "Qaqpan · Отбасылық қалқан"},
                      {"ru": f"{link.ward_title['ru']} отключает семейный щит — он выключится через 24 часа. "
                             f"Если об этом просил незнакомец по телефону, позвоните {link.ward_title_dat['ru']}.",
                       "kk": f"{link.ward_title['kk']} отбасылық қалқанды өшіріп жатыр — ол 24 сағаттан кейін өшеді. "

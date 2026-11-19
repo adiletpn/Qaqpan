@@ -1,4 +1,4 @@
-"""Qalqan API: one process, in-memory state, serves the built web app (web/dist).
+"""Qaqpan API: one process, in-memory state, serves the built web app (web/dist).
 
 Layers (docs/DEMO_SCENARIO.md):
   1 «Написали»     POST /api/messages/check
@@ -32,15 +32,15 @@ logging.basicConfig(level=logging.INFO)
 ROOT = Path(__file__).resolve().parent.parent
 WEB_DIST = ROOT / "web" / "dist"
 
-app = FastAPI(title="Qalqan API", version="1.1.0")
+app = FastAPI(title="Qaqpan API", version="1.1.0")
 
 FLAGGED = ("RECIPIENT_COMPLAINTS", "RECIPIENT_AFC")
 DUPLICATE_WINDOW_S = 5
 
 
 def require_director(x_director_key: str | None = Header(default=None)) -> None:
-    """On a public link set QALQAN_DIRECTOR_KEY so that only the presenter can drive or reset the demo."""
-    key = os.getenv("QALQAN_DIRECTOR_KEY")
+    """On a public link set QAQPAN_DIRECTOR_KEY so that only the presenter can drive or reset the demo."""
+    key = os.getenv("QAQPAN_DIRECTOR_KEY")
     if key and not hmac.compare_digest(x_director_key or "", key):
         raise HTTPException(403, "Нужен ключ ведущего")
 
@@ -134,7 +134,7 @@ def _withdraw_family(tr: Transfer) -> None:
 @app.get("/api/health")
 def health() -> dict:
     return {"status": "ok", "version": app.version, "llm": llm.status(),
-            "director_protected": bool(os.getenv("QALQAN_DIRECTOR_KEY"))}
+            "director_protected": bool(os.getenv("QAQPAN_DIRECTOR_KEY"))}
 
 
 @app.get("/api/clients")
@@ -305,8 +305,8 @@ def create_transfer(req: TransferRequest) -> TransferView:
             c.known_accounts.add(acc.number)
         else:
             tr.status = "warning" if a.level == 1 else "questions"
-            STATE.alert(c.id, f"Перевод {_fmt(req.amount)} — Qalqan поставил на паузу",
-                        f"{_fmt(req.amount)} аударым — Qalqan тоқтатты")
+            STATE.alert(c.id, f"Перевод {_fmt(req.amount)} — Qaqpan поставил на паузу",
+                        f"{_fmt(req.amount)} аударым — Qaqpan тоқтатты")
         STATE.transfers[tr.id] = tr
         STATE.prefill[c.id] = None
         why = ", ".join(reason_text(r, "ru", **a.kw) for r in a.reasons if r != "KNOWN_RECIPIENT")
@@ -358,7 +358,7 @@ def cancel_transfer(tid: str) -> TransferView:
         tr.status = "cancelled"
         _withdraw_family(tr)
         c = STATE.clients[tr.client_id]
-        STATE.emit("cancel", c.id, f"{c.short}: отменил(а) перевод {_fmt(tr.amount)} после предупреждения Qalqan",
+        STATE.emit("cancel", c.id, f"{c.short}: отменил(а) перевод {_fmt(tr.amount)} после предупреждения Qaqpan",
                    step=_step_for(tr), stopped=True)
         return _view(tr)
 

@@ -4,9 +4,9 @@ Drives /stage in headless Chrome at a human pace, shows a caption panel next to 
 highlights every tap, and assembles the screencast with ffmpeg.
 
     make demo                                   # server on :8000 (another terminal)
-    .venv/bin/python scripts/record_demo.py http://localhost:8000 video/qalqan_demo.mp4
+    .venv/bin/python scripts/record_demo.py http://localhost:8000 video/qaqpan_demo.mp4
 
-Interface language and voice-over are Russian. Voice: macOS `say` (QALQAN_VOICE, default Milena;
+Interface language and voice-over are Russian. Voice: macOS `say` (QAQPAN_VOICE, default Milena;
 install a better «Enhanced/Premium» Russian voice in System Settings → Accessibility → Spoken Content).
 """
 
@@ -29,7 +29,7 @@ from websockets.sync.client import connect
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 BASE = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8000"
-OUT = Path(sys.argv[2] if len(sys.argv) > 2 else "video/qalqan_demo.mp4")
+OUT = Path(sys.argv[2] if len(sys.argv) > 2 else "video/qaqpan_demo.mp4")
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 PORT = 9335
 W, H = 1920, 1080
@@ -137,22 +137,22 @@ class Browser:
         self.proc.terminate()
 
 
-VOICE = os.getenv("QALQAN_VOICE", "Milena")
-RATE = os.getenv("QALQAN_VOICE_RATE", "182")
+VOICE = os.getenv("QAQPAN_VOICE", "Milena")
+RATE = os.getenv("QAQPAN_VOICE_RATE", "182")
 
 # narration = what the voice says; captions show the same text on screen
 N = {
-    "intro": "Qalqan — щит от мошенников внутри приложения банка. Любое мошенничество проходит четыре шага, и на каждом стоит слой защиты.",
+    "intro": "Qaqpan — капкан для мошенников внутри приложения банка. Любое мошенничество проходит четыре шага, и на каждом стоит слой защиты.",
     "cast": "Перед вами три клиента банка: Айгерим, пятьдесят два года, её сын Ержан — доверенное лицо, и Мадина. Наверху — четыре шага мошенничества.",
-    "s1a": "Шаг первый: написали. Айгерим приходит SMS: срок вашей ЭЦП истекает, перейдите по ссылке. Она проверяет его в Qalqan одним нажатием.",
+    "s1a": "Шаг первый: написали. Айгерим приходит SMS: срок вашей ЭЦП истекает, перейдите по ссылке. Она проверяет его в Qaqpan одним нажатием.",
     "s1b": "Ответ за секунду: мошенничество. Ссылка подделана под eGov, а ЭЦП по SMS не продлевают. Работает на русском и казахском.",
     "s2a": "Шаг второй: позвонили. Звонит служба безопасности банка. Номер на экране можно подделать, а журнал звонков банка — нельзя.",
-    "s2b": "Qalqan сверился с банком: никто из сотрудников ей сейчас не звонит. На этот номер уже жаловались.",
+    "s2b": "Qaqpan сверился с банком: никто из сотрудников ей сейчас не звонит. На этот номер уже жаловались.",
     "s3a": "Шаг третий: уговорили перевести. Мошенник диктует перевод девятисот тысяч тенге на безопасный счёт.",
-    "s3b": "Qalqan видит: идёт звонок, новый получатель, шестьдесят семь процентов всех денег. Перевод на паузе, три вопроса.",
+    "s3b": "Qaqpan видит: идёт звонок, новый получатель, шестьдесят семь процентов всех денег. Перевод на паузе, три вопроса.",
     "s3c": "Мошенник подсказал ответы: нет на все вопросы. Но крупный перевод всё равно ждёт решения сына.",
     "f1": "Ержан на работе. Ему приходит уведомление: маму, возможно, обманывают.",
-    "f2": "Всё простыми словами: что происходит, что Qalqan видел сегодня и что делать. Без его ответа деньги не уйдут.",
+    "f2": "Всё простыми словами: что происходит, что Qaqpan видел сегодня и что делать. Без его ответа деньги не уйдут.",
     "f3": "Ержан отклоняет перевод. Деньги мамы остаются на её счёте.",
     "s4a": "Шаг четвёртый: получили деньги. Айгерим сообщает о мошенниках, и счёт помечается для всех клиентов банка.",
     "s4b": "Через минуту Мадина покупает айфон на OLX и платит сто пятьдесят тысяч тенге на тот же счёт.",
@@ -161,7 +161,7 @@ N = {
     "h1": "А если всё же обманули — что делать прямо сейчас и готовое заявление в полицию за минуту.",
     "d1": "А если мошенник скажет: отключите семейный щит?",
     "d2": "Щит выключится только через двадцать четыре часа, а сын сразу получает уведомление.",
-    "outro": "Мошенник может обмануть человека один раз. Но обойти слои защиты, семью и тысячи других клиентов одновременно — нет. Qalqan.",
+    "outro": "Мошенник может обмануть человека один раз. Но обойти слои защиты, семью и тысячи других клиентов одновременно — нет. Qaqpan.",
 }
 
 
@@ -246,7 +246,7 @@ def main() -> None:
         b.cdp("Page.navigate", url=f"{BASE}/stage")
         time.sleep(3)
         b.js(OVERLAY_JS)
-        b.js("window.__qv.card('Qalqan', 'Щит от мошенников внутри приложения банка.<br>4 шага мошенничества — 4 слоя защиты, которые передают сигнал друг другу.', 'ITU Hackathon 2026 · Fintech case · Банк ЦентрКредит')")
+        b.js("window.__qv.card('Qaqpan', 'Капкан для мошенников внутри приложения банка.<br>4 шага мошенничества — 4 слоя защиты, которые передают сигнал друг другу.', 'ITU Hackathon 2026 · Fintech case · Банк ЦентрКредит')")
         b.cdp("Page.startScreencast", format="jpeg", quality=85, maxWidth=W, maxHeight=H, everyNthFrame=1)
         time.sleep(0.8)
         speak("intro")
@@ -333,7 +333,7 @@ def main() -> None:
         caption("Защита от уговоров", "d2")
         wait_voice(1)
 
-        b.js("window.__qv.card('4 шага — 4 остановки', 'Мошенник может обмануть человека один раз.<br>Но обойти слои защиты, семью и тысячи других клиентов одновременно — нет.', 'Qalqan · ITU Hackathon 2026')")
+        b.js("window.__qv.card('4 шага — 4 остановки', 'Мошенник может обмануть человека один раз.<br>Но обойти слои защиты, семью и тысячи других клиентов одновременно — нет.', 'Qaqpan · ITU Hackathon 2026')")
         time.sleep(0.8)
         speak("outro")
         wait_voice(1.5)

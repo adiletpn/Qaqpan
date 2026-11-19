@@ -19,7 +19,7 @@ function Index() {
   ]
   return (
     <div className="min-h-screen bg-slate-950 p-8 text-white">
-      <h1 className="text-3xl font-black">Qalqan</h1>
+      <h1 className="text-3xl font-black">Qaqpan</h1>
       <p className="mt-1 text-slate-400">Прототип модуля защиты от мошенников для приложения банка · ITU Hackathon 2026</p>
       <div className="mt-6 grid max-w-xl gap-2">
         {links.map(([to, title, hint]) => (

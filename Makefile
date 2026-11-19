@@ -16,7 +16,7 @@ eval:           ## accuracy of the message checker on data/messages_eval.jsonl
 
 demo:           ## build web + serve everything on :8000 (LLM: cache only)
 	cd web && npm run build
-	QALQAN_DEMO=1 $(PY) -m uvicorn api.main:app --host 0.0.0.0 --port 8000
+	QAQPAN_DEMO=1 $(PY) -m uvicorn api.main:app --host 0.0.0.0 --port 8000
 
 api:            ## API with reload on :8000
 	$(PY) -m uvicorn api.main:app --reload --port 8000
@@ -40,5 +40,5 @@ lint:
 warm:           ## fill data/llm_cache with Claude answers for the demo screenshots (needs ANTHROPIC_API_KEY)
 	$(PY) scripts/warm_llm_cache.py
 
-video:          ## record the narrated demo video (server must run on :8000) -> video/qalqan_demo.mp4
-	$(PY) scripts/record_demo.py http://localhost:8000 video/qalqan_demo.mp4
+video:          ## record the narrated demo video (server must run on :8000) -> video/qaqpan_demo.mp4
+	$(PY) scripts/record_demo.py http://localhost:8000 video/qaqpan_demo.mp4

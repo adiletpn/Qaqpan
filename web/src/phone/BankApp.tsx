@@ -162,7 +162,7 @@ function Home({ snap, lang, onNav, onVerify, onCheck, onToggleLang, onOpenReques
         <div className="text-sm text-teal-100">{L('balance')}</div>
         <div className="mt-1 text-3xl font-bold tracking-tight">{money(snap.client.balance)}</div>
         <div className="mt-4 flex items-center gap-2 text-xs text-teal-100">
-          <Icon name="shield" className="h-4 w-4 shrink-0" /> {L('qalqan_on')}
+          <Icon name="shield" className="h-4 w-4 shrink-0" /> {L('qaqpan_on')}
           <button onClick={() => onNav('family')} className="ml-auto rounded-full bg-white/15 px-2.5 py-1 text-left font-semibold text-white active:bg-white/25">
             {shield.role === 'ward' ? `${L('family_shield')}: ${shield.guardian_name}`
               : shield.role === 'guardian' ? `${L('you_protect')}: ${shield.wards.map(w => w.title).join(', ')}`

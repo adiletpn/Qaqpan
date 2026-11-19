@@ -7,7 +7,7 @@ from api import llm, msgcheck, victim
 
 @pytest.fixture
 def no_credentials(monkeypatch, tmp_path):
-    monkeypatch.delenv("QALQAN_DEMO", raising=False)
+    monkeypatch.delenv("QAQPAN_DEMO", raising=False)
     monkeypatch.setattr(llm, "CACHE_DIR", tmp_path)
     monkeypatch.setattr(llm, "_disabled_reason", None)
 
@@ -31,7 +31,7 @@ def test_statement_falls_back_to_template(no_credentials):
 
 
 def test_demo_mode_never_calls_the_model(monkeypatch, tmp_path):
-    monkeypatch.setenv("QALQAN_DEMO", "1")
+    monkeypatch.setenv("QAQPAN_DEMO", "1")
     monkeypatch.setattr(llm, "CACHE_DIR", tmp_path)
     monkeypatch.setattr(llm, "_get_client", lambda: (_ for _ in ()).throw(AssertionError("live call in demo mode")))
     assert msgcheck.check("Вы выиграли приз", None, "image/png", None, "ru").source == "rules"

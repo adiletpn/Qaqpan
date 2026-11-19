@@ -5,7 +5,7 @@ Run after every change: `make test`. LLM is forced off so the test is determinis
 
 import os
 
-os.environ["QALQAN_DEMO"] = "1"
+os.environ["QAQPAN_DEMO"] = "1"
 
 import pytest
 from fastapi.testclient import TestClient

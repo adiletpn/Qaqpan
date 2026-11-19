@@ -3,7 +3,7 @@
 import os
 import time
 
-os.environ["QALQAN_DEMO"] = "1"
+os.environ["QAQPAN_DEMO"] = "1"
 
 import pytest
 from fastapi.testclient import TestClient
@@ -95,7 +95,7 @@ def test_unknown_api_path_is_404_not_the_web_app():
 
 
 def test_director_key_protects_the_demo(monkeypatch):
-    monkeypatch.setenv("QALQAN_DIRECTOR_KEY", "s3cret")
+    monkeypatch.setenv("QAQPAN_DIRECTOR_KEY", "s3cret")
     assert c.post("/api/director/reset").status_code == 403
     assert c.post("/api/director/reset", headers={"X-Director-Key": "wrong"}).status_code == 403
     assert c.post("/api/director/reset", headers={"X-Director-Key": "s3cret"}).status_code == 200

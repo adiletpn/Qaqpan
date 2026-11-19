@@ -1,7 +1,7 @@
 """Claude calls behind a disk cache.
 
 Order: cache -> live call (with timeout) -> None (caller falls back to rules/templates).
-QALQAN_DEMO=1 forbids live calls: the stage demo must not depend on the network.
+QAQPAN_DEMO=1 forbids live calls: the stage demo must not depend on the network.
 Cache files live in data/llm_cache/ and are committed, so the deployed demo has them too.
 """
 
@@ -20,15 +20,15 @@ from typing import Callable, TypeVar
 
 from pydantic import BaseModel
 
-log = logging.getLogger("qalqan.llm")
+log = logging.getLogger("qaqpan.llm")
 
 ROOT = Path(__file__).resolve().parent.parent
 CACHE_DIR = ROOT / "data" / "llm_cache"
-MODEL = os.getenv("QALQAN_MODEL", "claude-opus-5-5")
-TIMEOUT_S = float(os.getenv("QALQAN_LLM_TIMEOUT", "25"))
+MODEL = os.getenv("QAQPAN_MODEL", "claude-opus-5-5")
+TIMEOUT_S = float(os.getenv("QAQPAN_LLM_TIMEOUT", "25"))
 # Spend guard for a public link: beyond these limits answers come from rules/templates.
-RPM = int(os.getenv("QALQAN_LLM_RPM", "20"))
-DAILY = int(os.getenv("QALQAN_LLM_DAILY", "500"))
+RPM = int(os.getenv("QAQPAN_LLM_RPM", "20"))
+DAILY = int(os.getenv("QAQPAN_LLM_DAILY", "500"))
 
 M = TypeVar("M", bound=BaseModel)
 
@@ -53,7 +53,7 @@ def _allow_live_call() -> bool:
 
 
 def demo_mode() -> bool:
-    return os.getenv("QALQAN_DEMO") == "1"
+    return os.getenv("QAQPAN_DEMO") == "1"
 
 
 def status() -> dict:

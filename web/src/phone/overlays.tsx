@@ -61,7 +61,7 @@ export function SmsBanner({ sms, lang, onOpen, onClose, belowCall = false }: { s
         <button onClick={onOpen} className="min-w-0 flex-1 text-left">
           <div className="text-sm font-semibold">{sms.sender}</div>
           <div className="line-clamp-2 text-xs text-slate-600">{sms.text}</div>
-          <div className="mt-1 text-[11px] font-semibold text-teal-700">Qalqan · {tr(lang, 'tap_to_check')}</div>
+          <div className="mt-1 text-[11px] font-semibold text-teal-700">Qaqpan · {tr(lang, 'tap_to_check')}</div>
         </button>
         <button onClick={onClose} className="text-slate-400" aria-label="close"><Icon name="x" className="h-4 w-4" /></button>
       </div>

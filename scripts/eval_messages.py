@@ -35,7 +35,7 @@ def main() -> None:
     rules = [msgcheck.check_rules(r["text"], r["lang"]).verdict for r in rows]
     results = {"Правила (офлайн)": rules}
 
-    if os.getenv("QALQAN_EVAL_LLM") == "1":
+    if os.getenv("QAQPAN_EVAL_LLM") == "1":
         llm_preds = []
         for r in rows:
             res = msgcheck.check_llm(r["text"], None, "image/png", r["lang"], {"text": r["text"], "img": ""})

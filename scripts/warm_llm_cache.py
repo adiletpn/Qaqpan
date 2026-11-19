@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-os.environ.pop("QALQAN_DEMO", None)
+os.environ.pop("QAQPAN_DEMO", None)
 
 from api import llm, msgcheck  # noqa: E402
 

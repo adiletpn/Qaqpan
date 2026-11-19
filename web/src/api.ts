@@ -67,7 +67,7 @@ export interface StageEvent { seq: number; ts: number; kind: string; client_id: 
 export interface Stage { steps: string[]; stopped: number; events: StageEvent[] }
 
 // Presenter key for a public deployment: open /stage?key=... once, it is remembered on this device.
-const KEY_STORAGE = 'qalqan.directorKey'
+const KEY_STORAGE = 'qaqpan.directorKey'
 export function captureDirectorKey() {
   try {
     const k = new URLSearchParams(window.location.search).get('key')

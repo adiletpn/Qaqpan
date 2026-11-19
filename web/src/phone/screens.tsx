@@ -172,7 +172,7 @@ export function TransferScreen({ clientId, lang, prefill, balance, onBack, onDon
         <Button onClick={submit} disabled={busy || account.replace(/\D/g, '').length < 6 || !amt}>
           {busy ? <span className="flex items-center justify-center gap-2"><Spinner />…</span> : `${L('send')} ${amt ? money(amt) : ''}`}
         </Button>
-        <div className="flex items-center justify-center gap-1.5 text-xs text-slate-400"><Icon name="shield" className="h-3.5 w-3.5" />{L('qalqan_on')}</div>
+        <div className="flex items-center justify-center gap-1.5 text-xs text-slate-400"><Icon name="shield" className="h-3.5 w-3.5" />{L('qaqpan_on')}</div>
       </div>
     </div>
   )

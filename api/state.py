@@ -2,7 +2,7 @@
 
 Everything a real bank already has (accounts, outbound call log, complaint registry, the
 Antifraud-Centre list, family links) is mocked here with the shape a production integration would use.
-The bank does NOT see the client's SMS or call audio: the timeline only holds what Qalqan itself knows
+The bank does NOT see the client's SMS or call audio: the timeline only holds what Qaqpan itself knows
 (messages the client checked, the fact of a call from the OS, call checks, transfers).
 """
 
@@ -123,7 +123,7 @@ class FamilyRequest:
 
 @dataclass
 class Alert:
-    """What Qalqan knows about a client today — shown to the guardian as a timeline."""
+    """What Qaqpan knows about a client today — shown to the guardian as a timeline."""
 
     ts: float
     text: dict[str, str]
