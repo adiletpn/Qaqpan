@@ -97,9 +97,15 @@ web/ (React + Vite + TS + Tailwind)  ──poll 1s──▶  api/ (FastAPI, со
 
 ## Деплой
 
-`Dockerfile` собирает фронт и запускает API. Для Render есть `render.yaml` (Docker, health check `/api/health`).
-Бесплатные тарифы засыпают — для ссылки жюри нужен минимальный платный.
+**Railway** (`railway.json`, сборка по `Dockerfile`, проверка здоровья `/api/health`):
+1. railway.com → New Project → Deploy from GitHub repo → `Qaqpan`.
+2. Variables: `XKIRO_API_KEY`, `QAQPAN_DIRECTOR_KEY` (ключ ведущего), при желании `QAQPAN_LLM_DAILY`.
+3. Settings → Networking → Generate Domain — это ссылка для жюри.
 
-Ссылка общая для всех, поэтому на публичном деплое задайте `QAQPAN_DIRECTOR_KEY` (Render генерирует его сам):
-пульт и сброс работают только у того, кто один раз открыл `/director?key=<значение>`. Живые вызовы ИИ ограничены
-`QAQPAN_LLM_RPM` и `QAQPAN_LLM_DAILY` — сверх лимита ответы идут из правил, расходы не уходят в бесконечность.
+Также есть `render.yaml` для Render. Запускать **с одним воркером**: состояние демо хранится в памяти.
+
+Ссылка общая для всех: пульт и сброс работают только у того, кто один раз открыл `/director?key=<ключ ведущего>`.
+Живые вызовы ИИ ограничены `QAQPAN_LLM_RPM` и `QAQPAN_LLM_DAILY` — сверх лимита ответы идут из правил.
+
+**Как мобильное приложение:** на iPhone откройте `<ссылка>/phone/aigerim` в Safari → «Поделиться» →
+«На экран Домой». На сцене экран iPhone выводится на проектор через AirPlay или кабелем (QuickTime → «Новая видеозапись» → источник iPhone).
