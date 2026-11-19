@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { motion } from 'framer-motion'
+import { useEffect, useState } from 'react'
 import { api, money, type FamilyRequest, type Lang, type Notice, type Shield } from '../api'
 import { tr } from '../i18n'
+import { buzz, EASE, SPRING } from '../motion'
 import { Button, Card, Header, Icon } from '../ui'
 
 type K = Parameters<typeof tr>[1]
@@ -11,8 +13,11 @@ const hhmm = (ts: number) => new Date(ts * 1000).toLocaleTimeString('ru-RU', { h
 
 export function PushBanner({ notice, lang, onOpen, onClose }: { notice: Notice; lang: Lang; onOpen: () => void; onClose: () => void }) {
   const urgent = notice.kind === 'family_request'
+  useEffect(() => { buzz(urgent ? [120, 80, 120] : 40) }, [urgent])
   return (
-    <div className="absolute inset-x-2 top-2 z-40 animate-[slidein_.35s_ease-out]">
+    <motion.div initial={{ y: -140, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -140, opacity: 0 }} transition={SPRING}
+      drag="y" dragConstraints={{ top: 0, bottom: 0 }} onDragEnd={(_, i) => { if (i.offset.y < -30) onClose() }}
+      className="absolute inset-x-2 top-2 z-40">
       <div className={`rounded-2xl p-3 shadow-2xl ring-1 backdrop-blur ${urgent ? 'bg-slate-900/95 text-white ring-red-500/60' : 'bg-white/95 ring-slate-200'}`}>
         <div className="flex items-start gap-3">
           <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${urgent ? 'bg-red-500' : 'bg-teal-700'} text-white`}>
@@ -27,7 +32,7 @@ export function PushBanner({ notice, lang, onOpen, onClose }: { notice: Notice; 
           <button onClick={onClose} className="opacity-50" aria-label={tr(lang, 'close')}><Icon name="x" className="h-4 w-4" /></button>
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -44,7 +49,8 @@ export function FamilySheet({ req, lang, onDone, onClose }: { req: FamilyRequest
   }
   const minutes = Math.max(1, Math.ceil(req.expires_in / 60))
   return (
-    <div className="absolute inset-0 z-30 flex flex-col bg-slate-50">
+    <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ duration: 0.38, ease: EASE }}
+      className="absolute inset-0 z-30 flex flex-col bg-slate-50 shadow-2xl">
       <div className="flex items-center justify-between bg-red-600 px-4 pb-3 pt-3 text-white">
         <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide"><Icon name="family" className="h-4 w-4" />{L('family_shield')}</div>
         <button onClick={onClose} className="opacity-80" aria-label={L('close')}><Icon name="x" className="h-5 w-5" /></button>
@@ -91,14 +97,14 @@ export function FamilySheet({ req, lang, onDone, onClose }: { req: FamilyRequest
           )}
         <div className="text-center text-xs text-slate-400">{minutes} {L('min_left')}</div>
       </div>
-      <div className="space-y-2 border-t border-slate-200 bg-white px-4 pb-4 pt-3 shadow-[0_-8px_24px_rgba(0,0,0,0.06)]">
+      <div className="space-y-2 border-t border-slate-200 bg-white px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-8px_24px_rgba(0,0,0,0.06)]">
         <a href={`tel:${req.ward_phone.replace(/\s/g, '')}`}
           className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-[15px] font-semibold text-white active:bg-emerald-700">
           <Icon name="phone" />{L('call_back')} · {req.ward_title}
         </a>
         <Button tone="danger" disabled={busy} onClick={() => decide(false)}>{L('decline_tr')}</Button>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
