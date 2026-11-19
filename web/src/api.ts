@@ -58,6 +58,7 @@ export interface Snapshot {
   family_requests: FamilyRequest[]
   notices: Notice[]
   shield: Shield
+  history: { title: string; amount: number; ts: number }[]
 }
 export interface CallVerify { status: 'bank' | 'not_bank' | 'no_call'; title: string; message: string; number: string | null; number_complaints: number }
 export interface Sample { id: string; sender: string; text: string; label: Record<Lang, string>; image: string; based_on: string | null }
