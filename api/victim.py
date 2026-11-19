@@ -58,6 +58,8 @@ def _template(lang: Lang, name: str, amount: float | None, account: str | None, 
     return Statement(title="Заявление в отдел полиции", body=body)
 
 
+STATEMENT_EXAMPLE = '{"title": "Заявление в отдел полиции", "body": "полный текст заявления"}'
+
 SYSTEM = """Ты помогаешь жертве финансового мошенничества в Казахстане составить заявление в полицию.
 Пиши официально, кратко, на языке {lang_name}, от первого лица. Используй только данные из запроса,
 недостающее помечай в квадратных скобках. Не добавляй статьи закона и номера, которых нет во входных данных."""
@@ -68,10 +70,10 @@ def build(lang: Lang, name: str, amount: float | None, account: str | None, phon
     fallback = _template(lang, name, amount, account, phone, scheme)
     if story:
         payload = {"lang": lang, "name": name, "amount": amount, "account": account, "phone": phone, "scheme": scheme, "story": story}
-        content = [{"type": "text", "text": "Данные пострадавшего:\n" + "\n".join(f"{k}: {v}" for k, v in payload.items() if v)}]
+        prompt = "Данные пострадавшего:\n" + "\n".join(f"{k}: {v}" for k, v in payload.items() if v)
         system = SYSTEM.format(lang_name="казахском" if lang == "kk" else "русском")
         result, source = llm.cached_call("statement", payload, Statement,
-                                         lambda: llm.parse(system, content, Statement, max_tokens=4000, effort="low"))
+                                         lambda: llm.parse(system, prompt, Statement, STATEMENT_EXAMPLE, max_tokens=1500))
         if result:
             return VictimHelp(steps=STEPS[lang], statement=result, source=source)
     return VictimHelp(steps=STEPS[lang], statement=fallback, source="template")

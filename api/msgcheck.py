@@ -222,19 +222,30 @@ egov.kz, gov.kz, bcc.kz, kaspi.kz, nationalbank.kz и т.п. Настоящий 
 
 Правила ответа:
 - verdict: scam (явное мошенничество), suspicious (есть признаки, нужно проверить), safe;
+- признаки мошенничества — это просьбы: перевести деньги, назвать код/пароль/данные карты, перейти по
+  ссылке, установить приложение, перезвонить на номер; давление и срочность; подмена отправителя.
+  Если ни одной такой просьбы нет (уведомление о покупке или зачислении, код от постамата, сообщение
+  от близких без просьбы о деньгах, предупреждение банка о мошенниках) — это safe. Незнакомый
+  отправитель сам по себе не повод ставить suspicious;
 - reasons и advice — на языке клиента ({lang_name}), коротко и просто, для пожилого человека;
 - не выдумывай факты, которых нет во входных данных."""
 
 
-def check_llm(text: str | None, image_b64: str | None, media_type: str, lang: Lang, cache_payload: dict) -> CheckResult | None:
-    content: list[dict] = []
-    if image_b64:
-        content.append({"type": "image", "source": {"type": "base64", "media_type": media_type, "data": image_b64}})
-    content.append({"type": "text", "text": f"Сообщение клиента:\n{text}" if text else "Проверь сообщение на скриншоте."})
-    system = SYSTEM.format(lang_name="казахский" if lang == "kk" else "русский")
+EXAMPLE = ('{"verdict": "scam", "confidence": 0.9, "scheme": "bank_security", '
+           '"reasons": ["короткая причина 1", "короткая причина 2"], "advice": "что делать сейчас", '
+           '"extracted_text": "текст сообщения"}  — verdict: scam|suspicious|safe; scheme: one of '
+           'safe_account, bank_security, ecp_egov, prize, investment, olx_delivery, relative, drop_recruit, '
+           'remote_app, phishing, vote_hijack, fake_fine, parcel, other, none')
 
-    result, source = llm.cached_call("msg", {**cache_payload, "lang": lang}, LlmVerdict,
-                                     lambda: llm.parse(system, content, LlmVerdict, max_tokens=4000, effort="low"))
+SEVERITY = {"safe": 0, "suspicious": 1, "scam": 2}
+PROMPT_VERSION = 2  # bump when SYSTEM/EXAMPLE change: invalidates cached AI answers
+
+
+def check_llm(text: str | None, image_b64: str | None, media_type: str, lang: Lang, cache_payload: dict) -> CheckResult | None:
+    system = SYSTEM.format(lang_name="казахский" if lang == "kk" else "русский")
+    prompt = f"Сообщение клиента:\n{text}" if text else "Проверь сообщение на скриншоте."
+    result, source = llm.cached_call("msg", {**cache_payload, "lang": lang, "v": PROMPT_VERSION}, LlmVerdict,
+                                     lambda: llm.parse(system, prompt, LlmVerdict, EXAMPLE, image_b64=image_b64, media_type=media_type))
     if result is None:
         return None
     scheme = None if result.scheme in ("none", "other") else result.scheme
@@ -268,11 +279,24 @@ def check(text: str | None, image_b64: str | None, media_type: str, sample_id: s
     if not text and not image_b64:
         raise ValueError("empty input")
     payload = {"text": text or "", "img": hashlib.sha256((image_b64 or "").encode()).hexdigest()[:32] if image_b64 else ""}
+    rules = check_rules(text, lang) if text else None
     via_llm = check_llm(text, image_b64, media_type, lang, payload)
+    if via_llm and rules:
+        # two-stage check: curated rule reasons first, AI adds what rules cannot explain;
+        # the AI may raise the verdict but never soften a confident rules verdict
+        verdict = via_llm.verdict
+        if rules.score >= 0.6 and SEVERITY[rules.verdict] > SEVERITY[verdict]:
+            verdict = rules.verdict
+        reasons = rules.reasons[:2] + [r for r in via_llm.reasons if r.text not in {x.text for x in rules.reasons}][:2]
+        scheme = via_llm.scheme or rules.scheme
+        return via_llm.model_copy(update={
+            "verdict": verdict, "score": max(via_llm.score, rules.score) if verdict != "safe" else min(via_llm.score, rules.score),
+            "scheme": scheme, "scheme_name": SCHEME_NAME[scheme][lang] if scheme else None,
+            "reasons": reasons or via_llm.reasons, "text": text})
     if via_llm:
         return via_llm
-    if text:
-        return check_rules(text, lang)
+    if rules:
+        return rules
     # image without text and without the model: be honest
     return CheckResult(verdict="suspicious", score=0.5, reasons=[Reason(code="NO_OCR", text=(
         "ИИ-модуль недоступен: вставьте текст сообщения" if lang == "ru" else
