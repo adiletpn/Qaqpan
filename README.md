@@ -97,7 +97,9 @@ web/ (React + Vite + TS + Tailwind)  ──poll 1s──▶  api/ (FastAPI, со
 
 ## Деплой
 
-**Railway** (`railway.json`, сборка по `Dockerfile`, проверка здоровья `/api/health`):
+**Работающий деплой: https://qaqpan-production.up.railway.app** (Railway, собирается автоматически из `main`).
+
+**Railway** (сборка по `Dockerfile`, проверка здоровья `/api/health`):
 1. railway.com → New Project → Deploy from GitHub repo → `Qaqpan`.
 2. Variables: `XKIRO_API_KEY`, `QAQPAN_DIRECTOR_KEY` (ключ ведущего), при желании `QAQPAN_LLM_DAILY`.
 3. Settings → Networking → Generate Domain — это ссылка для жюри.

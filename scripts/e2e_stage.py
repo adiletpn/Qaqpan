@@ -7,6 +7,7 @@ Needs Google Chrome; uses only `websockets` (installed with uvicorn[standard]).
 
 import base64
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -56,7 +57,9 @@ try:
         return r.get("result", {}).get("value")
 
     def director(action):
-        urllib.request.urlopen(urllib.request.Request(f"{BASE}/api/director/{action}", method="POST", data=b""))
+        key = os.getenv("QAQPAN_DIRECTOR_KEY")  # needed against a protected public deployment
+        urllib.request.urlopen(urllib.request.Request(f"{BASE}/api/director/{action}", method="POST", data=b"",
+                                                      headers={"X-Director-Key": key} if key else {}))
         time.sleep(1.3)
 
     def click(phone: int, text: str, exact=False):

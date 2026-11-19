@@ -4,7 +4,7 @@
 
 - [x] Ключ xKiro в `.env` → `make warm` → кэш ответов ИИ для всех демо-скриншотов закоммичен
 - [ ] Вычитка казахских текстов носителем: `api/texts.py`, `web/src/i18n.ts`, `api/msgcheck.py` (REASON_TEXT, ADVICE), `api/schemes.py`, `api/victim.py`
-- [ ] Деплой: Render → New Blueprint → этот репозиторий (`render.yaml`), тариф starter, переменная `XKIRO_API_KEY`
+- [x] Деплой: https://qaqpan-production.up.railway.app (Railway, автосборка из `main`, переменные `XKIRO_API_KEY` и `QAQPAN_DIRECTOR_KEY` заданы)
 - [ ] Скопировать сгенерированный `QAQPAN_DIRECTOR_KEY` и один раз открыть `/director?key=…` и `/stage?key=…` на устройствах ведущего
 - [ ] Проверить ссылку: `/stage`, `/director`, `/phone/aigerim` с телефона
 - [ ] Видео демо 3 минуты с субтитрами (запись экрана `/stage` по `DEMO_SCENARIO.md`) — запасной вариант
