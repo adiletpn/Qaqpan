@@ -13,6 +13,8 @@ const paths: Record<string, string> = {
   family: 'M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM2 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 14.3c.6-.2 1.3-.3 2-.3 3.3 0 6 2.7 6 6',
   news: 'M4 5h13v14H6a2 2 0 0 1-2-2V5Zm13 4h3v8a2 2 0 0 1-2 2M8 9h5M8 13h5',
   image: 'M4 5h16v14H4V5Zm0 10 4-4 4 4 3-3 5 5M15 9.5v.5',
+  spark: 'M12 3v4m0 10v4M3 12h4m10 0h4M6 6l2.5 2.5m7 7L18 18M6 18l2.5-2.5m7-7L18 6',
+  arrowup: 'M12 19V5m-6 6 6-6 6 6',
 }
 
 export function Icon({ name, className = 'w-5 h-5' }: { name: keyof typeof paths | string; className?: string }) {

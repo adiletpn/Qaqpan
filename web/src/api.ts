@@ -118,6 +118,8 @@ export const api = {
   schemes: (lang: Lang) => req<SchemeCard[]>(`/api/schemes?lang=${lang}`),
   samples: () => req<Sample[]>('/api/samples'),
   stage: () => req<Stage>('/api/stage'),
+  assistant: (client_id: string, lang: Lang, messages: { role: 'user' | 'assistant'; content: string }[]) =>
+    req<{ reply: string; source: string }>('/api/assistant', { client_id, lang, messages }),
   director: (action: string) => {
     const k = directorKey()
     return req(`/api/director/${action}`, {}, k ? { 'X-Director-Key': k } : {})
