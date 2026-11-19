@@ -98,6 +98,7 @@ try:
     # 3 «Уговорили»: scammer coached her to say «no»
     director("transfer_aigerim")
     click(0, "Аудару 900")
+    time.sleep(1.6)  # Qaqpan's visible analysis step
     shot("03_questions")
     for _ in range(3):
         js("""(() => { const root = document.querySelectorAll('main > div')[0];
@@ -117,7 +118,7 @@ try:
     click(0, "Алаяқтар туралы хабарлау")
     director("transfer_madina")
     click(2, "Перевести 150")
-    time.sleep(0.8)
+    time.sleep(2.0)
     shot("06_madina_protected")
     # finale
     director("victim")
