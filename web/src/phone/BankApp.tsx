@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { api, money, type CallVerify, type Lang, type Snapshot, type TransferView } from '../api'
+import { api, type CallVerify, type Lang, type Snapshot, type TransferView } from '../api'
 import { tr } from '../i18n'
 import { useNativeCallSignal } from '../native'
-import { Card, Icon } from '../ui'
 import { FamilyScreen, FamilySheet, PushBanner } from './family'
+import { Home } from './home'
 import { CallPill, IncomingCall, SmsBanner, VerifySheet } from './overlays'
 import { CheckScreen, ResultScreen, SchemesScreen, TransferScreen, VictimScreen } from './screens'
 
@@ -20,6 +20,8 @@ export default function BankApp({ clientId }: { clientId: string }) {
   const [openRequest, setOpenRequest] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const navSeq = useRef(0)
+  const mountedAt = useRef(Date.now())
+  const [bannerSms, setBannerSms] = useState<string | null>(null)
   useNativeCallSignal(clientId)
 
   const refresh = useCallback(async () => {
@@ -41,10 +43,21 @@ export default function BankApp({ clientId }: { clientId: string }) {
   // director-driven navigation (prefilled transfer, victim help); each nav fires once
   useEffect(() => {
     const nav = snap?.nav
-    if (!nav || nav.seq <= navSeq.current) return
+    // director commands are one-shot: ignore anything issued before this page was opened
+    if (!nav || nav.seq <= navSeq.current || nav.seq < mountedAt.current - 1000) return
     navSeq.current = nav.seq
     if (nav.screen === 'transfer' || nav.screen === 'victim') setScreen(nav.screen)
   }, [snap?.nav])
+
+  // SMS banner: only for messages that arrive while the app is open, hides itself like a real notification
+  const lastSmsId = snap?.sms[snap.sms.length - 1]?.id
+  const lastSmsTs = snap?.sms[snap.sms.length - 1]?.ts
+  useEffect(() => {
+    if (!lastSmsId || !lastSmsTs || lastSmsTs * 1000 < mountedAt.current - 1000) return
+    setBannerSms(lastSmsId)
+    const t = setTimeout(() => setBannerSms(null), 7000)
+    return () => clearTimeout(t)
+  }, [lastSmsId, lastSmsTs])
 
   // demo reset on the server: every phone returns to a clean home screen
   const epoch = useRef<number | null>(null)
@@ -66,7 +79,7 @@ export default function BankApp({ clientId }: { clientId: string }) {
   const ringing = !!snap.call && !snap.call.answered
   const request = openRequest ? snap.family_requests.find(r => r.id === openRequest) : undefined
   const notice = snap.notices[snap.notices.length - 1]
-  const showSms = !!newestSms && newestSms.id !== dismissedSms && screen !== 'check' && !notice
+  const showSms = !!newestSms && bannerSms === newestSms.id && newestSms.id !== dismissedSms && screen !== 'check' && !notice
 
   const doVerify = async () => {
     try { setVerify(await api.verifyCall(clientId)) } catch (e) { setToast(e instanceof Error ? e.message : L('error')) }
@@ -116,117 +129,6 @@ export default function BankApp({ clientId }: { clientId: string }) {
           onDecline={() => api.endCall(clientId).then(refresh).catch(() => undefined)} />
       )}
       {toast && <div className="absolute inset-x-4 bottom-4 z-50 rounded-2xl bg-slate-900 p-3 text-center text-sm text-white shadow-xl">{toast}</div>}
-    </div>
-  )
-}
-
-function Home({ snap, lang, onNav, onVerify, onCheck, onToggleLang, onOpenRequest }: {
-  snap: Snapshot; lang: Lang; onNav: (s: Screen) => void; onVerify: () => void; onCheck: (s: string | null) => void
-  onToggleLang: () => void; onOpenRequest: (id: string) => void
-}) {
-  const L = (k: Parameters<typeof tr>[1]) => tr(lang, k)
-  const [schemes, setSchemes] = useState<{ id: string; title: string }[]>([])
-  useEffect(() => { api.schemes(lang).then(setSchemes).catch(() => setSchemes([])) }, [lang])
-  const actions = [
-    { icon: 'send', label: L('transfer'), on: () => onNav('transfer'), tone: 'bg-teal-700 text-white' },
-    { icon: 'msg', label: L('check_msg'), on: () => onCheck(null), tone: 'bg-white text-teal-800' },
-    { icon: 'phone', label: L('bank_calling'), on: onVerify, tone: 'bg-white text-teal-800' },
-    { icon: 'help', label: L('scammed'), on: () => onNav('victim'), tone: 'bg-white text-red-700' },
-  ]
-  const shield = snap.shield
-  const pending = snap.family_requests[0]
-  return (
-    <div className="space-y-4 px-4 pb-8 pt-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="grid h-11 w-11 place-items-center rounded-full bg-teal-100 font-bold text-teal-800">{snap.client.avatar}</div>
-          <div>
-            <div className="text-xs text-slate-500">{L('hello')},</div>
-            <div className="font-bold">{snap.client.short}</div>
-          </div>
-        </div>
-        <button onClick={onToggleLang} className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-slate-700 ring-1 ring-slate-200">
-          {lang === 'kk' ? 'ҚАЗ' : 'РУС'}
-        </button>
-      </div>
-
-      {pending && (
-        <button onClick={() => onOpenRequest(pending.id)} className="flex w-full animate-pulse items-center gap-3 rounded-2xl bg-red-600 p-3 text-left text-white shadow-lg">
-          <Icon name="family" className="h-6 w-6 shrink-0" />
-          <span className="text-sm font-semibold leading-snug">{pending.headline}</span>
-          <span className="ml-auto">→</span>
-        </button>
-      )}
-
-      <div className="rounded-3xl bg-gradient-to-br from-teal-700 to-teal-900 p-5 text-white shadow-lg">
-        <div className="text-sm text-teal-100">{L('balance')}</div>
-        <div className="mt-1 text-3xl font-bold tracking-tight">{money(snap.client.balance)}</div>
-        <div className="mt-4 flex items-center gap-2 text-xs text-teal-100">
-          <Icon name="shield" className="h-4 w-4 shrink-0" /> {L('qaqpan_on')}
-          <button onClick={() => onNav('family')} className="ml-auto rounded-full bg-white/15 px-2.5 py-1 text-left font-semibold text-white active:bg-white/25">
-            {shield.role === 'ward' ? `${L('family_shield')}: ${shield.guardian_name}`
-              : shield.role === 'guardian' ? `${L('you_protect')}: ${shield.wards.map(w => w.title).join(', ')}`
-                : `${L('family_shield')} →`}
-          </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-4 gap-2">
-        {actions.map(a => (
-          <button key={a.label} onClick={a.on} className="flex flex-col items-center gap-1.5 text-center">
-            <span className={`grid h-14 w-14 place-items-center rounded-2xl shadow-sm ring-1 ring-slate-100 ${a.tone}`}><Icon name={a.icon} className="h-6 w-6" /></span>
-            <span className="text-[11px] font-medium leading-tight text-slate-700">{a.label}</span>
-          </button>
-        ))}
-      </div>
-
-      {snap.sms.length > 0 && (
-        <Card>
-          <div className="mb-2 text-sm font-semibold text-slate-500">{L('sms')}</div>
-          {snap.sms.slice().reverse().map(s => (
-            <button key={s.id} onClick={() => onCheck(s.sample_id)} className="flex w-full gap-3 border-t border-slate-100 py-2 text-left first:border-0">
-              <Icon name="msg" className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
-              <div className="min-w-0">
-                <div className="text-sm font-semibold">{s.sender}</div>
-                <div className="line-clamp-2 text-xs text-slate-600">{s.text}</div>
-                <div className="mt-1 text-[11px] font-semibold text-teal-700">{L('tap_to_check')} →</div>
-              </div>
-            </button>
-          ))}
-        </Card>
-      )}
-
-      {snap.transfers.length > 0 && (
-        <Card>
-          <div className="mb-2 text-sm font-semibold text-slate-500">{L('recent')}</div>
-          {snap.transfers.slice().reverse().map(t => (
-            <div key={t.id} className="flex items-center justify-between gap-3 border-t border-slate-100 py-2 text-sm first:border-0">
-              <div className="min-w-0">
-                <div className="truncate font-medium">{t.holder}</div>
-                <div className={`text-xs ${t.status === 'completed' ? 'text-slate-500' : t.status === 'cancelled' ? 'text-emerald-700' : 'text-amber-700'}`}>{t.title}</div>
-              </div>
-              <div className={`shrink-0 font-semibold ${t.status === 'completed' ? '' : t.status === 'cancelled' ? 'text-slate-400 line-through' : 'text-amber-700'}`}>−{money(t.amount)}</div>
-            </div>
-          ))}
-        </Card>
-      )}
-
-      {schemes.length > 0 && (
-        <div>
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm font-semibold text-slate-500">{L('new_schemes')}</span>
-            <button onClick={() => onNav('schemes')} className="text-xs font-semibold text-teal-700">→</button>
-          </div>
-          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-            {schemes.map(s => (
-              <button key={s.id} onClick={() => onNav('schemes')} className="w-40 shrink-0 rounded-2xl bg-amber-50 p-3 text-left ring-1 ring-amber-100">
-                <Icon name="news" className="h-5 w-5 text-amber-600" />
-                <div className="mt-2 text-xs font-semibold leading-snug text-amber-900">{s.title}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
