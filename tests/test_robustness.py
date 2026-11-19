@@ -187,3 +187,21 @@ def test_victim_help_uses_latest_suspicious_transfer():
     scam_transfer_to_family()
     h = c.post("/api/victim/help", json={"client_id": "aigerim", "lang": "ru"}).json()
     assert "900 000" in h["statement"]["body"] and "KZ86" in h["statement"]["body"]
+
+
+def test_assistant_offline_knows_the_call_situation():
+    c.post("/api/director/call")
+    c.post("/api/phone/aigerim/call/answer")
+    r = c.post("/api/assistant", json={"client_id": "aigerim", "lang": "ru",
+                                       "messages": [{"role": "user", "content": "Мне звонят из службы безопасности банка"}]}).json()
+    assert r["source"] in ("offline", "llm", "cache") and r["reply"]
+
+
+def test_assistant_offline_answers_without_ai(monkeypatch):
+    monkeypatch.delenv("XKIRO_API_KEY", raising=False)
+    r = c.post("/api/assistant", json={"client_id": "madina", "lang": "ru",
+                                       "messages": [{"role": "user", "content": "Продавец на OLX просит предоплату"}]}).json()
+    assert r["source"] == "offline" and "предоплат" in r["reply"]
+    from api.assistant import offline_reply
+    c.post("/api/director/call"); c.post("/api/phone/aigerim/call/answer")
+    assert offline_reply("aigerim", "что делать", "ru").startswith("Вижу, что вам сейчас звонят")
