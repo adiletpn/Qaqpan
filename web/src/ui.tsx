@@ -37,7 +37,7 @@ export function Button({ children, onClick, tone = 'primary', disabled, classNam
 }) {
   return (
     <button onClick={onClick} disabled={disabled}
-      className={`w-full rounded-2xl px-4 py-3.5 text-[15px] font-semibold transition disabled:opacity-50 ${tones[tone]} ${className}`}>
+      className={`w-full rounded-2xl px-4 py-3.5 text-[15px] font-semibold transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 ${tones[tone]} ${className}`}>
       {children}
     </button>
   )
@@ -51,7 +51,7 @@ export function Header({ title, onBack }: { title: string; onBack?: () => void }
   return (
     <div className="sticky top-0 z-10 flex items-center gap-2 bg-slate-50/95 px-4 pb-3 pt-2 backdrop-blur">
       {onBack && (
-        <button onClick={onBack} className="-ml-2 rounded-full p-2 text-slate-700 active:bg-slate-200" aria-label="back">
+        <button onClick={onBack} className="-ml-2 rounded-full p-2 text-slate-700 transition active:scale-90 active:bg-slate-200" aria-label="back">
           <Icon name="back" />
         </button>
       )}

@@ -85,13 +85,13 @@ export function Home({ snap, lang, onNav, onVerify, onCheck, onToggleLang, onOpe
       <div className="grid grid-cols-4 gap-2">
         {actions.map(a => (
           <button key={a.label} onClick={a.on} className="flex flex-col items-center gap-1.5 text-center">
-            <span className={`grid h-14 w-14 place-items-center rounded-2xl shadow-sm ring-1 ring-slate-100 ${a.tone}`}><Icon name={a.icon} className="h-6 w-6" /></span>
+            <span className={`grid h-14 w-14 place-items-center rounded-2xl shadow-sm ring-1 ring-slate-100 transition-transform duration-150 active:scale-90 ${a.tone}`}><Icon name={a.icon} className="h-6 w-6" /></span>
             <span className="text-[11px] font-medium leading-tight text-slate-700">{a.label}</span>
           </button>
         ))}
       </div>
 
-      <button onClick={() => onNav('family')} className="flex w-full items-center gap-3 rounded-2xl bg-white p-3 text-left shadow-sm ring-1 ring-slate-100 active:bg-slate-50">
+      <button onClick={() => onNav('family')} className="flex w-full items-center gap-3 rounded-2xl bg-white p-3 text-left shadow-sm ring-1 ring-slate-100 transition active:scale-[0.99] active:bg-slate-50">
         <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${shield.role === 'none' ? 'bg-slate-100 text-slate-500' : 'bg-teal-50 text-teal-700'}`}>
           <Icon name="family" className="h-5 w-5" />
         </span>
