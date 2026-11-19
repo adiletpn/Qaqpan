@@ -36,6 +36,7 @@ app = FastAPI(title="Qaqpan API", version="1.1.0")
 
 FLAGGED = ("RECIPIENT_COMPLAINTS", "RECIPIENT_AFC")
 DUPLICATE_WINDOW_S = 5
+NAV_TTL_MS = 15_000
 
 
 def require_director(x_director_key: str | None = Header(default=None)) -> None:
@@ -171,7 +172,10 @@ def phone(cid: str) -> dict:
                                            "since": call.started},
             "sms": [{"id": s.id, "sender": s.sender, "text": s.text, "sample_id": s.sample_id, "ts": s.ts} for s in STATE.sms[cid]],
             "prefill": STATE.prefill[cid],
-            "nav": STATE.nav[cid],
+            # director commands are one-shot: a page opened later must not replay them
+            "nav": STATE.nav[cid] if STATE.nav[cid] and time.time() * 1000 - STATE.nav[cid]["seq"] < NAV_TTL_MS else None,
+            "history": [{"title": h["title"][c.lang], "amount": h["amount"], "ts": time.time() - h["ago_min"] * 60}
+                        for h in STATE.history.get(cid, [])],
             "transfers": [_view(tr).model_dump() for tr in mine],
             "family_requests": requests,
             "notices": [{"id": n.id, "ts": n.ts, "kind": n.kind, "title": n.title[c.lang], "body": n.body[c.lang],
@@ -407,8 +411,14 @@ def family_decision(rid: str, req: FamilyDecision) -> dict:
         else:
             fr.status = "declined"
             tr.status = "cancelled"
+            # the guardian's «no» is a signal for everyone: the recipient account gets flagged like a complaint
+            acc = STATE.accounts[tr.account]
+            if (g.id, acc.number) not in STATE.complaints_by:
+                STATE.complaints_by.add((g.id, acc.number))
+                acc.complaints += 1
             STATE.alert(c.id, f"{g.short} отклонил(а) перевод", f"{g.short} аударымды қабылдамады")
-            STATE.emit("family_no", c.id, f"{g.short} отклонил(а) перевод {_fmt(tr.amount)} — деньги {c.short} спасены",
+            STATE.emit("family_no", c.id, f"{g.short} отклонил(а) перевод {_fmt(tr.amount)} — деньги {c.short} спасены, "
+                       "счёт получателя помечен для всех клиентов",
                        step="persuaded", stopped=True)
         return {"status": fr.status, "transfer": _view(tr).model_dump()}
 
