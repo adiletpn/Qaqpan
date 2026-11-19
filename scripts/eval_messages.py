@@ -13,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from api import msgcheck  # noqa: E402
+from api import llm, msgcheck  # noqa: E402
 
 DATA = ROOT / "data" / "messages_eval.jsonl"
 OUT = ROOT / "docs" / "METRICS.md"
@@ -41,7 +41,9 @@ def main() -> None:
             res = msgcheck.check_llm(r["text"], None, "image/png", r["lang"], {"text": r["text"], "img": ""})
             llm_preds.append(res.verdict if res else "n/a")
         if "n/a" not in llm_preds:
-            results["Claude"] = llm_preds
+            results[f"ИИ ({llm.MODEL})"] = llm_preds
+            # what the app actually does: rules + AI, AI may raise but never soften a confident rules verdict
+            results["Правила + ИИ (как в приложении)"] = [msgcheck.check(r["text"], None, "image/png", None, r["lang"]).verdict for r in rows]
 
     counts = Counter((r["label"], r["origin"]) for r in rows)
     lines = [
@@ -54,7 +56,9 @@ def main() -> None:
         f"новостях схемам), обычных {counts[('legit', 'constructed')]} (уведомления банка, eGov, почты, семья, OLX).",
         "",
         "**Ограничение.** Набор маленький и в основном сконструирован нами, поэтому это проверка поведения, а не оценка "
-        "точности в бою. Настоящая метрика — на обезличенных жалобах клиентов банка (первый шаг пилота).",
+        "точности в бою. Инструкция для ИИ уточнялась после первого прогона на этом же наборе (до уточнения: ИИ — 100% "
+        "пойманных при 4 мягких тревогах «подозрительно» из 18), поэтому цифры ИИ оптимистичны. Настоящая метрика — "
+        "на обезличенных жалобах клиентов банка (первый шаг пилота).",
         "",
         "| Модель | Поймано мошенничества (recall) | Точность тревог (precision) | Ложные тревоги | Пропуски | Accuracy |",
         "|---|---|---|---|---|---|",
