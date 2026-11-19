@@ -5,7 +5,7 @@ export const EASE: [number, number, number, number] = [0.22, 0.8, 0.2, 1]
 export const SPRING: Transition = { type: 'spring', stiffness: 420, damping: 38, mass: 0.9 }
 
 // screen depth decides the direction of the transition: deeper = slides in from the right
-export const DEPTH: Record<string, number> = { home: 0, check: 1, transfer: 1, schemes: 1, family: 1, result: 2, victim: 3 }
+export const DEPTH: Record<string, number> = { home: 0, check: 1, transfer: 1, schemes: 1, family: 1, assistant: 1, result: 2, victim: 3 }
 
 export const pageVariants = {
   enter: (dir: number) => ({ x: dir > 0 ? '100%' : '-28%', opacity: dir > 0 ? 1 : 0.6, zIndex: dir > 0 ? 2 : 1 }),

@@ -91,6 +91,16 @@ export function Home({ snap, lang, onNav, onVerify, onCheck, onToggleLang, onOpe
         ))}
       </div>
 
+      <button onClick={() => onNav('assistant')}
+        className="flex w-full items-center gap-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 p-3 text-left text-white shadow-md transition active:scale-[0.99]">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/20"><Icon name="spark" className="h-5 w-5" /></span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-bold">{L('assistant')}</span>
+          <span className="block truncate text-xs text-emerald-50">{L('assistant_sub')}</span>
+        </span>
+        <span className="text-xl text-white/70">›</span>
+      </button>
+
       <button onClick={() => onNav('family')} className="flex w-full items-center gap-3 rounded-2xl bg-white p-3 text-left shadow-sm ring-1 ring-slate-100 transition active:scale-[0.99] active:bg-slate-50">
         <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${shield.role === 'none' ? 'bg-slate-100 text-slate-500' : 'bg-teal-50 text-teal-700'}`}>
           <Icon name="family" className="h-5 w-5" />

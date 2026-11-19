@@ -5,11 +5,12 @@ import { tr } from '../i18n'
 import { DEPTH, pageVariants } from '../motion'
 import { useNativeCallSignal } from '../native'
 import { FamilyScreen, FamilySheet, PushBanner } from './family'
+import { AssistantScreen } from './assistant'
 import { Home } from './home'
 import { CallPill, IncomingCall, SmsBanner, VerifySheet } from './overlays'
 import { CheckScreen, ResultScreen, SchemesScreen, TransferScreen, VictimScreen } from './screens'
 
-export type Screen = 'home' | 'check' | 'transfer' | 'result' | 'victim' | 'schemes' | 'family'
+export type Screen = 'home' | 'check' | 'transfer' | 'result' | 'victim' | 'schemes' | 'family' | 'assistant'
 
 export default function BankApp({ clientId }: { clientId: string }) {
   const [snap, setSnap] = useState<Snapshot | null>(null)
@@ -124,6 +125,7 @@ export default function BankApp({ clientId }: { clientId: string }) {
         onHome={() => { setScreen('home'); setTransfer(null) }} onVictim={() => setScreen('victim')} /> : null
       case 'victim': return <VictimScreen clientId={clientId} lang={lang} transferId={transfer?.id} onBack={() => setScreen('home')} />
       case 'schemes': return <SchemesScreen lang={lang} onBack={() => setScreen('home')} />
+      case 'assistant': return <AssistantScreen clientId={clientId} lang={lang} onBack={() => setScreen('home')} />
       case 'family': return <FamilyScreen clientId={clientId} lang={lang} shield={snap.shield} onBack={() => setScreen('home')} onChanged={refresh} />
     }
   })()
