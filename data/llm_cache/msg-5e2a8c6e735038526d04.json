@@ -1,0 +1,10 @@
+{
+  "verdict": "suspicious",
+  "confidence": 0.7,
+  "scheme": "vote_hijack",
+  "reasons": [
+    "толқынды тексеру қажет"
+  ],
+  "advice": "хабарламаларды тексеріп, ресми дереккөздерден ақпарат алыңыз",
+  "extracted_text": "Балама дауыс берші"
+}
