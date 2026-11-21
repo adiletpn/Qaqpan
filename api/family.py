@@ -135,9 +135,9 @@ def notify_confirmed(ward_id: str, tr: Transfer) -> None:
     amount = _fmt(tr.amount)
     STATE.notify(link.guardian_id, "info",
                  {"ru": "Qaqpan · Семейный щит", "kk": "Qaqpan · Отбасылық қалқан"},
-                 {"ru": f"{link.ward_title['ru']} подтвердила признаки обмана. Перевод {amount} остановлен, им занимается "
+                 {"ru": f"{link.ward_title['ru']} подтвердила признаки давления. Перевод {amount} остановлен, им занимается "
                         f"банк. Позвоните {link.ward_title_dat['ru']} на обычный номер.",
-                  "kk": f"{link.ward_title['kk']} алаяқтық белгілерін растады. {amount} аударым тоқтатылды, оны банк "
+                  "kk": f"{link.ward_title['kk']} қысым белгілерін растады. {amount} аударым тоқтатылды, оны банк "
                         f"тексереді. {link.ward_title_dat['kk'].capitalize()} әдеттегі нөміріне қоңырау шалыңыз."},
                  ref=tr.id)
 

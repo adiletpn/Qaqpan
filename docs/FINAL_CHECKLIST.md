@@ -5,7 +5,7 @@
 - [x] Ключ xKiro в `.env` → `make warm` → кэш ответов ИИ для всех демо-скриншотов закоммичен (инструкция v3)
 - [x] Деплой: https://qaqpan-production.up.railway.app (Railway, автосборка из `main`, `XKIRO_API_KEY`, `QAQPAN_DIRECTOR_KEY`, `QAQPAN_IDLE_RESET_MIN=10`)
 - [x] Внешний разбор 21.11: обходы щита, смягчение вердикта ИИ, казахский вердикт, горячие клавиши, шаг 5, время по Алматы — исправлено, 91 тест
-- [ ] Вычитка казахских текстов носителем: `api/texts.py`, `web/src/i18n.ts`, `web/src/phone/family.tsx`, `api/family.py`, `api/msgcheck.py` (REASON_TEXT, ADVICE), `api/schemes.py`, `api/victim.py`
+- [x] Вычитка казахских текстов (Claude, 22.11): грамматика, порядок слов, термины — «оқталу», «ҚМА», «ХҚКО». Перед финалом показать носителю: `api/texts.py`, `web/src/i18n.ts`, `web/src/phone/family.tsx`, `api/family.py`, `api/msgcheck.py` (REASON_TEXT, ADVICE), `api/schemes.py`, `api/victim.py`
 - [ ] Контрольный набор: ≥ 30 реальных сообщений (SMS и мессенджеры родных и знакомых, 3–5 официальных предупреждений банков) → `data/messages_holdout.jsonl` → `QAQPAN_EVAL_LLM=1 make eval`. Правила и инструкцию ИИ перед этим не менять
 - [ ] Один раз открыть `/director?key=…` и `/stage?key=…` на устройствах ведущего
 - [ ] Проверить ссылку с телефона: `/stage`, `/director`, `/phone/aigerim`
