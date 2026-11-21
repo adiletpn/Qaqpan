@@ -49,13 +49,13 @@ def test_golden_path():
     assert tr["status"] == "awaiting_family" and tr["guardian_name"] == "Ержан"
     req = c.get("/api/phone/erzhan").json()["family_requests"][0]
     assert req["amount"] == 900_000
-    d = c.post(f"/api/family/requests/{req['id']}/decision", json={"approve": False}).json()
+    d = c.post(f"/api/family/requests/{req['id']}/decision", json={"client_id": "erzhan", "approve": False}).json()
     assert d["transfer"]["status"] == "cancelled"
     assert c.get("/api/phone/aigerim").json()["client"]["balance"] == 1_350_000
 
     # 4 «Получили»: her complaint marks the account -> Madina is protected 10 seconds later
     comp = c.post("/api/complaints", json={"client_id": "aigerim", "transfer_id": tr["id"]}).json()
-    assert comp["account_complaints"] == 2  # the son's «no» + the mother's complaint
+    assert comp["confirmed"] and comp["account_complaints"] == 1  # stopped under a call + the son's «no» -> confirmed
     m = c.post("/api/transfers", json={"client_id": "madina", "account": DANIYAR, "amount": 150_000}).json()
     assert m["status"] == "questions" and "жалоб" in m["message"]
     m = c.post(f"/api/transfers/{m['id']}/answers", json={"answers": [True, True, False]}).json()
@@ -64,6 +64,7 @@ def test_golden_path():
     stage = c.get("/api/stage").json()
     assert set(stage["steps"]) == {"written", "called", "persuaded", "received"}
     assert stage["stopped"] >= 4
+    assert stage["saved"] == 1_050_000  # 900 000 (mother) + 150 000 (Madina)
 
 
 def test_normal_transfer_passes():
@@ -82,7 +83,7 @@ def test_family_timeout_escalates_not_blocks(monkeypatch):
     c.post("/api/director/call")
     c.post("/api/phone/aigerim/call/answer")
     tr = c.post("/api/transfers", json={"client_id": "aigerim", "account": DANIYAR, "amount": 900_000}).json()
-    c.post(f"/api/transfers/{tr['id']}/answers", json={"answers": [True, False, False]})
+    c.post(f"/api/transfers/{tr['id']}/answers", json={"answers": [False, False, False]})
     import api.state as st
     for fr in st.STATE.family.values():
         fr.expires = 0

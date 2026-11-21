@@ -6,11 +6,10 @@ Without the model a template is used — the feature never fails.
 
 from __future__ import annotations
 
-from datetime import datetime
-
 from pydantic import BaseModel, Field
 
 from . import llm
+from .risk import local_now
 from .texts import Lang
 
 STEPS: dict[str, list[str]] = {
@@ -29,6 +28,22 @@ STEPS: dict[str, list[str]] = {
 }
 
 
+ATTEMPT_STEPS: dict[str, list[str]] = {
+    "ru": [
+        "Деньги на вашем счёте: перевод остановлен. Не перезванивайте на номер, с которого звонили.",
+        "Если вы называли коды или устанавливали приложение — позвоните в банк по номеру 505 и смените пароль.",
+        "Подайте заявление о попытке мошенничества (102 или e-Otinish) — текст ниже уже готов. Так номер и счёт проверят.",
+        "Расскажите близким: следующей могут позвонить им.",
+    ],
+    "kk": [
+        "Ақшаңыз шотыңызда: аударым тоқтатылды. Қоңырау шалған нөмірге қайта хабарласпаңыз.",
+        "Кодтарды айтсаңыз немесе қосымша орнатсаңыз — 505 нөміріне банкке қоңырау шалып, құпиясөзді ауыстырыңыз.",
+        "Алаяқтық әрекеті туралы өтініш беріңіз (102 немесе e-Otinish) — мәтін төменде дайын. Нөмір мен шот тексеріледі.",
+        "Жақындарыңызға айтыңыз: келесі қоңырау соларға болуы мүмкін.",
+    ],
+}
+
+
 class Statement(BaseModel):
     title: str
     body: str = Field(description="Full statement text, formal, ready to submit")
@@ -40,9 +55,29 @@ class VictimHelp(BaseModel):
     source: str
 
 
-def _template(lang: Lang, name: str, amount: float | None, account: str | None, phone: str | None, scheme: str) -> Statement:
-    date = datetime.now().strftime("%d.%m.%Y")
+def _attempt(lang: Lang, name: str, date: str, amt: str, account: str | None, phone: str | None, scheme: str) -> Statement:
+    """The transfer was stopped: the money is safe, but the attempt is still worth reporting (the account, the number)."""
+    if lang == "kk":
+        body = (f"Мен, {name}, {date} маған қатысты алаяқтық әрекет жасалғаны туралы хабарлаймын.\n\n"
+                f"Маған {phone or '[нөмір]'} нөмірінен қоңырау шалып, өздерін {scheme} қызметкері деп таныстырды және "
+                f"{account or '[шот]'} шотына {amt} аударуға көндірді. Аударымды банк тоқтатты, ақша менің шотымда қалды.\n\n"
+                "Осы нөмір мен шоттың иелерін тексеріп, алаяқтарды жауапкершілікке тартуды сұраймын.\n\n"
+                "Қосымша: қоңыраулар тізімінің скриншоты.")
+        return Statement(title="Алаяқтық әрекеті туралы өтініш", body=body)
+    body = (f"Я, {name}, {date} сообщаю о попытке мошенничества в отношении меня.\n\n"
+            f"Мне позвонили с номера {phone or '[номер]'}, звонившие представились сотрудниками {scheme} и убеждали "
+            f"перевести {amt} на счёт {account or '[счёт]'}. Перевод остановил банк, деньги остались на моём счёте.\n\n"
+            "Прошу проверить владельцев номера и счёта и привлечь мошенников к ответственности.\n\n"
+            "Приложения: скриншот списка вызовов.")
+    return Statement(title="Заявление о попытке мошенничества", body=body)
+
+
+def _template(lang: Lang, name: str, amount: float | None, account: str | None, phone: str | None, scheme: str,
+              attempt: bool = False) -> Statement:
+    date = local_now().strftime("%d.%m.%Y")
     amt = f"{amount:,.0f} ₸".replace(",", " ") if amount else "[сумма]"
+    if attempt:
+        return _attempt(lang, name, date, amt, account, phone, scheme)
     if lang == "kk":
         body = (f"Мен, {name}, {date} алаяқтық әрекеттердің құрбаны болдым.\n\n"
                 f"Маған {phone or '[нөмір]'} нөмірінен қоңырау шалып, өздерін {scheme} қызметкері деп таныстырды. "
@@ -66,14 +101,15 @@ SYSTEM = """Ты помогаешь жертве финансового моше
 
 
 def build(lang: Lang, name: str, amount: float | None, account: str | None, phone: str | None,
-          scheme: str, story: str | None) -> VictimHelp:
-    fallback = _template(lang, name, amount, account, phone, scheme)
+          scheme: str, story: str | None, attempt: bool = False) -> VictimHelp:
+    fallback = _template(lang, name, amount, account, phone, scheme, attempt)
     if story:
-        payload = {"lang": lang, "name": name, "amount": amount, "account": account, "phone": phone, "scheme": scheme, "story": story}
+        payload = {"lang": lang, "name": name, "amount": amount, "account": account, "phone": phone, "scheme": scheme, "story": story,
+                   **({"outcome": "перевод остановлен банком, деньги не ушли"} if attempt else {})}
         prompt = "Данные пострадавшего:\n" + "\n".join(f"{k}: {v}" for k, v in payload.items() if v)
         system = SYSTEM.format(lang_name="казахском" if lang == "kk" else "русском")
         result, source = llm.cached_call("statement", payload, Statement,
                                          lambda: llm.parse(system, prompt, Statement, STATEMENT_EXAMPLE, max_tokens=1500))
         if result:
-            return VictimHelp(steps=STEPS[lang], statement=result, source=source)
-    return VictimHelp(steps=STEPS[lang], statement=fallback, source="template")
+            return VictimHelp(steps=(ATTEMPT_STEPS if attempt else STEPS)[lang], statement=result, source=source)
+    return VictimHelp(steps=(ATTEMPT_STEPS if attempt else STEPS)[lang], statement=fallback, source="template")

@@ -15,6 +15,7 @@ from api.state import STATE
 c = TestClient(app)
 SCAM = "KZ86 8562 0000 0471 1934"
 OWN_CARD = "5169 4971 0023 7781"
+SISTER_OF_NOBODY = "KZ44 8562 0000 0777 1234"
 
 
 @pytest.fixture(autouse=True)
@@ -43,7 +44,7 @@ def test_approve_without_funds_cancels_instead_of_hanging():
     tr = scam_transfer_to_family()
     STATE.clients["aigerim"].balance = 100
     rid = c.get("/api/phone/erzhan").json()["family_requests"][0]["id"]
-    d = c.post(f"/api/family/requests/{rid}/decision", json={"approve": True}).json()
+    d = c.post(f"/api/family/requests/{rid}/decision", json={"client_id": "erzhan", "approve": True}).json()
     msg = d["transfer"]["message"]
     assert d["transfer"]["status"] == "cancelled" and ("средств" in msg or "қаражат" in msg)
     assert tr["id"] == d["transfer"]["id"]
@@ -60,11 +61,11 @@ def test_decision_on_closed_request_is_rejected():
     tr = scam_transfer_to_family()
     rid = c.get("/api/phone/erzhan").json()["family_requests"][0]["id"]
     c.post(f"/api/transfers/{tr['id']}/cancel")
-    assert c.post(f"/api/family/requests/{rid}/decision", json={"approve": True}).status_code == 409
+    assert c.post(f"/api/family/requests/{rid}/decision", json={"client_id": "erzhan", "approve": True}).status_code == 409
 
 
 def test_complaints_are_counted_once_per_client():
-    tr = scam_transfer_to_family()
+    tr = scam_transfer_to_family(answers=(True, False, False))  # she confirmed the pressure -> a confirmed complaint
     for _ in range(3):
         r = c.post("/api/complaints", json={"client_id": "aigerim", "transfer_id": tr["id"]}).json()
     assert r["account_complaints"] == 1
@@ -162,12 +163,13 @@ def test_shield_info_roles():
     assert c.get("/api/phone/madina").json()["shield"]["role"] == "none"
 
 
-def test_guardian_decline_alone_protects_the_next_client():
+def test_guardian_decline_alone_is_a_signal_not_a_hold():
+    # the son may decline an honest seller (a sofa): his «no» alone must not hold everyone's payments
     scam_transfer_to_family()
     rid = c.get("/api/phone/erzhan").json()["family_requests"][0]["id"]
-    c.post(f"/api/family/requests/{rid}/decision", json={"approve": False})
+    c.post(f"/api/family/requests/{rid}/decision", json={"client_id": "erzhan", "approve": False})
     m = c.post("/api/transfers", json={"client_id": "madina", "account": SCAM, "amount": 150_000}).json()
-    assert m["status"] == "questions" and "жалоб" in m["message"]
+    assert m["status"] == "warning" and "жалоб" not in (m["message"] or "")
 
 
 def test_director_navigation_is_not_replayed_on_reload():
@@ -183,10 +185,18 @@ def test_history_is_localised():
     assert "Қызынан аударым" in titles
 
 
-def test_victim_help_uses_latest_suspicious_transfer():
+def test_victim_help_for_a_stopped_transfer_reports_an_attempt():
     scam_transfer_to_family()
     h = c.post("/api/victim/help", json={"client_id": "aigerim", "lang": "ru"}).json()
-    assert "900 000" in h["statement"]["body"] and "KZ86" in h["statement"]["body"]
+    body = h["statement"]["body"]
+    assert "900 000" in body and "KZ86" in body and "попытк" in body and "перевел(а)" not in body
+
+
+def test_victim_help_after_a_completed_transfer_is_a_loss_statement():
+    tr = c.post("/api/transfers", json={"client_id": "madina", "account": SCAM, "amount": 40_000}).json()
+    assert tr["status"] == "completed"
+    h = c.post("/api/victim/help", json={"client_id": "madina", "lang": "ru", "transfer_id": tr["id"]}).json()
+    assert "перевел(а) 40 000" in h["statement"]["body"]
 
 
 def test_assistant_offline_knows_the_call_situation():
@@ -205,3 +215,104 @@ def test_assistant_offline_answers_without_ai(monkeypatch):
     from api.assistant import offline_reply
     c.post("/api/director/call"); c.post("/api/phone/aigerim/call/answer")
     assert offline_reply("aigerim", "что делать", "ru").startswith("Вижу, что вам сейчас звонят")
+
+
+# ---------------------------------------------------------------- review 21.11: bypasses of the shield
+
+def on_call():
+    c.post("/api/phone/aigerim/lang/ru")
+    c.post("/api/director/call")
+    c.post("/api/phone/aigerim/call/answer")
+
+
+def send(amount, account=SCAM, cid="aigerim"):
+    return c.post("/api/transfers", json={"client_id": cid, "account": account, "amount": amount}).json()
+
+
+def test_split_transfers_reach_family():
+    on_call()
+    first = send(180_000)
+    first = c.post(f"/api/transfers/{first['id']}/answers", json={"answers": [False] * 3}).json()
+    assert first["status"] == "warning"  # 180 000 is under the 200 000 limit
+    c.post(f"/api/transfers/{first['id']}/proceed")
+    second = send(180_001)
+    second = c.post(f"/api/transfers/{second['id']}/answers", json={"answers": [False] * 3}).json()
+    assert second["status"] == "awaiting_family"
+    req = c.get("/api/phone/erzhan").json()["family_requests"][0]
+    assert "2-я попытка" in req["explanation"] and "360 001" in req["explanation"]
+
+
+def test_hang_up_then_transfer_reaches_family():
+    on_call()
+    c.post("/api/director/end_call")
+    tr = send(900_000)
+    assert tr["status"] == "questions" and "звонок закончился меньше 30 минут назад" in tr["reasons"]
+    tr = c.post(f"/api/transfers/{tr['id']}/answers", json={"answers": [False] * 3}).json()
+    assert tr["status"] == "awaiting_family"
+    assert c.post(f"/api/transfers/{tr['id']}/proceed").status_code == 409
+    req = c.get("/api/phone/erzhan").json()["family_requests"][0]
+    assert "только что закончила телефонный разговор" in req["explanation"]
+
+
+def test_warm_up_does_not_whitelist():
+    c.post("/api/phone/aigerim/lang/ru")
+    assert send(1_000)["status"] == "completed"
+    tr = send(900_000)
+    assert tr["status"] == "awaiting_family" and "новый получатель" in tr["reasons"]
+
+
+def test_yes_answers_go_to_the_bank_not_the_son():
+    tr = scam_transfer_to_family(answers=(True, True, True))
+    assert tr["status"] == "held"
+    son = c.get("/api/phone/erzhan").json()
+    assert son["family_requests"] == [] and son["notices"][0]["kind"] == "info"
+
+
+def test_only_the_guardian_can_decide():
+    scam_transfer_to_family()
+    rid = c.get("/api/phone/erzhan").json()["family_requests"][0]["id"]
+    assert c.post(f"/api/family/requests/{rid}/decision", json={"client_id": "aigerim", "approve": True}).status_code == 403
+    assert c.post(f"/api/family/requests/{rid}/decision", json={"client_id": "erzhan", "approve": True}).status_code == 200
+
+
+def test_complaint_by_number_only_does_not_hold_others():
+    r = c.post("/api/complaints", json={"client_id": "madina", "account": SISTER_OF_NOBODY}).json()
+    assert not r["confirmed"]
+    tr = send(50_000, SISTER_OF_NOBODY, "erzhan")
+    assert tr["status"] != "questions" and "по получателю есть непроверенный сигнал" in tr["reasons"]
+
+
+def test_shield_ignores_long_standing_recipients():
+    on_call()
+    tr = send(300_000, "KZ55 8562 0000 0128 7740")  # the sister, paid for years: a warning, not the son
+    assert tr["status"] == "warning"
+
+
+def test_fresh_loan_to_a_new_recipient_holds():
+    STATE.clients["madina"].loan = (500_000, time.time() - 20 * 3600)
+    tr = send(350_000, "KZ99 8562 0000 0555 0001", "madina")
+    assert tr["level"] == 2 and "переводится только что полученный кредит" in tr["reasons"]
+
+
+def test_saved_money_is_counted_once():
+    tr = scam_transfer_to_family(answers=(True, False, False))
+    c.post(f"/api/transfers/{tr['id']}/cancel")
+    assert c.get("/api/stage").json()["saved"] == 900_000
+
+
+def test_shadow_mode_never_delays_money(monkeypatch):
+    monkeypatch.setenv("QAQPAN_SHADOW", "1")
+    on_call()
+    tr = send(900_000)
+    assert tr["status"] == "completed"
+    assert any("Теневой режим" in e["text"] for e in c.get("/api/stage").json()["events"])
+
+
+def test_night_is_almaty_time():
+    from datetime import datetime, timezone
+    from api.risk import ALMATY
+    utc_5am = datetime(2026, 11, 20, 5, 0, tzinfo=timezone.utc).astimezone(ALMATY)
+    from api.risk import assess
+    from api.state import Account
+    a = assess(STATE.clients["madina"], Account("1", "1", "x", "BCC"), 10_000, False, False, 0, utc_5am)
+    assert "NIGHT" not in a.reasons

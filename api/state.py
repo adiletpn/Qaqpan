@@ -20,6 +20,8 @@ TransferStatus = Literal["completed", "warning", "questions", "held", "awaiting_
 StepId = Literal["written", "called", "persuaded", "received"]
 
 FAMILY_TIMEOUT_S = 15 * 60
+PRESSURE_WINDOW_S = 30 * 60   # «положите трубку и переведите сами» — the call still counts for 30 minutes
+SESSION_WINDOW_S = 24 * 3600  # recipients first paid within 24 h stay «new»; the shield limit counts 24 h of transfers
 SHIELD_DISABLE_DELAY_S = 24 * 3600
 SCAM_NUMBER = "+7 727 356 18 40"
 BANK_NUMBER = "505"
@@ -41,7 +43,8 @@ class Client:
     balance: float
     phone: str
     avatar: str = ""
-    known_accounts: set[str] = field(default_factory=set)
+    known_accounts: set[str] = field(default_factory=set)  # long-standing recipients (older than the session)
+    loan: tuple[float, float] | None = None  # (amount, issued_ts) of the latest loan
 
 
 @dataclass
@@ -67,7 +70,8 @@ class Account:
     display: str
     holder: str
     bank: str
-    complaints: int = 0
+    complaints: int = 0  # confirmed: about a transfer Qaqpan itself stopped under pressure
+    signals: int = 0     # unconfirmed: complaint by number only, a guardian's «no» — adds weight, never a hold alone
     in_afc: bool = False
     owner_id: str | None = None  # set when the account belongs to one of our clients (e.g. own card elsewhere)
 
@@ -108,6 +112,8 @@ class Transfer:
     answers: list[bool] | None = None
     family_request_id: str | None = None
     note: str = ""
+    shield: bool = False    # the family shield applies (new recipient, session total >= the guardian limit)
+    pressure: bool = False  # made during a call or within 30 min after it
 
 
 @dataclass
@@ -198,9 +204,14 @@ class State:
                 Account(own_card, "5169 •••• •••• 7781", "Айгерим С. (своя карта)", "Другой банк", owner_id="aigerim"),
             ]
             self.accounts: dict[str, Account] = {a.number: a for a in accs}
-            self.complaints_by: set[tuple[str, str]] = set()  # (client_id, account) — one complaint each
+            self.complaints_by: set[tuple[str, str]] = set()  # (client_id, account) — one complaint or «no» each
+            self.confirmed_by: set[tuple[str, str]] = set()   # of those, confirmed by a stopped transfer
             self.number_complaints: dict[str, int] = {SCAM_NUMBER: 3}
             self.calls: dict[str, Call] = {}
+            self.call_ended: dict[str, float] = {}  # when the client's last non-bank call ended
+            self.first_paid: dict[tuple[str, str], float] = {}  # (client, account) -> first completed transfer
+            self.saved_ids: set[str] = set()
+            self.saved = 0.0  # ₸ in transfers Qaqpan stopped
             self.last_call_number: dict[str, str] = {}
             self.bank_outbound: dict[str, Call] = {}  # the bank's own call log: client_id -> active outbound call
             self.sms: dict[str, list[Sms]] = {cid: [] for cid in self.clients}
@@ -257,7 +268,35 @@ class State:
             if call:
                 if call.number != NATIVE_NUMBER:
                     self.last_call_number[cid] = call.number
+                if call.answered and not call.is_bank and cid not in self.bank_outbound:
+                    self.call_ended[cid] = time.time()
                 self.bank_outbound.pop(cid, None)
+
+    def pressure(self, cid: str) -> tuple[bool, bool]:
+        """(on a call now, a call ended less than 30 minutes ago). A verified bank call is not pressure."""
+        call = self.calls.get(cid)
+        on_call = bool(call and call.answered and cid not in self.bank_outbound)
+        ended = self.call_ended.get(cid)
+        return on_call, (not on_call and ended is not None and time.time() - ended < PRESSURE_WINDOW_S)
+
+    def is_known(self, cid: str, account: str, now: float | None = None) -> bool:
+        """A recipient becomes «known» only a day after the first payment: a test transfer of 100 ₸ whitelists nothing."""
+        if account in self.clients[cid].known_accounts:
+            return True
+        first = self.first_paid.get((cid, account))
+        return first is not None and (now or time.time()) - first >= SESSION_WINDOW_S
+
+    def session_total(self, cid: str, now: float | None = None) -> float:
+        """Money sent or being sent to new recipients in the last 24 h — splitting 900 000 into five parts adds up."""
+        now = now or time.time()
+        return sum(tr.amount for tr in self.transfers.values()
+                   if tr.client_id == cid and tr.status != "cancelled" and now - tr.ts < SESSION_WINDOW_S
+                   and not self.is_known(cid, tr.account, now))
+
+    def mark_saved(self, tr: "Transfer") -> None:
+        if tr.id not in self.saved_ids:
+            self.saved_ids.add(tr.id)
+            self.saved += tr.amount
 
     def expire_family(self) -> None:
         now = time.time()
@@ -266,7 +305,7 @@ class State:
                 fr.status = "expired"
                 tr = self.transfers[fr.transfer_id]
                 tr.status = "escalated"
-                self.emit("family_expired", fr.from_client, "Доверенное лицо не ответило — перевод передан сотруднику банка")
+                self.emit("family_expired", fr.from_client, "Доверенное лицо не ответило — перевод ждёт проверки антифрод-аналитика банка")
 
 
 STATE = State()

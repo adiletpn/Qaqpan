@@ -72,6 +72,7 @@ class AnswersRequest(BaseModel):
 
 
 class FamilyDecision(BaseModel):
+    client_id: str  # who decides: must be the guardian of this request
     approve: bool
 
 
@@ -84,6 +85,7 @@ class ComplaintRequest(BaseModel):
 class ComplaintResult(BaseModel):
     message: str
     account_complaints: int
+    confirmed: bool = False  # about a transfer Qaqpan stopped under pressure -> holds transfers of other clients
     number_flagged: str | None = None
 
 

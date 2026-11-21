@@ -25,7 +25,8 @@ from .risk import assess
 from .schemas import (AnswersRequest, AssistantRequest, CallVerifyRequest, CallVerifyResult, CheckResult, ComplaintRequest,
                       ComplaintResult, FamilyDecision, MessageCheckRequest, NativeCallSignal, Question,
                       TransferRequest, TransferView, VictimHelp, VictimRequest)
-from .state import (BANK_NUMBER, FAMILY_TIMEOUT_S, NATIVE_NUMBER, STATE, Call, FamilyRequest, Transfer, digits)
+from .state import (BANK_NUMBER, FAMILY_TIMEOUT_S, NATIVE_NUMBER, STATE, Call, Client, FamilyLink, FamilyRequest, Transfer,
+                    digits)
 from .texts import QUESTIONS, reason_text, t
 
 logging.basicConfig(level=logging.INFO)
@@ -35,6 +36,11 @@ WEB_DIST = ROOT / "web" / "dist"
 app = FastAPI(title="Qaqpan API", version="1.1.0")
 
 FLAGGED = ("RECIPIENT_COMPLAINTS", "RECIPIENT_AFC")
+
+
+def SHADOW() -> bool:  # noqa: N802 — read per request so tests can flip it
+    """Pilot mode QAQPAN_SHADOW=1: Qaqpan scores and logs every transfer but never delays the money."""
+    return os.getenv("QAQPAN_SHADOW") == "1"
 DUPLICATE_WINDOW_S = 5
 NAV_TTL_MS = 15_000
 
@@ -101,6 +107,8 @@ def _view(tr: Transfer) -> TransferView:
         else:
             base = t("flagged", lang) if flagged else ""
         message = (base + " " + t("bank.callback", lang)).strip()
+        if said_yes and guardian and tr.shield:
+            message += " " + t("family.informed", lang, name=guardian)
     elif tr.status == "cancelled":
         title = t("safe.money", lang)
         if fr and fr.status == "declined":
@@ -128,6 +136,25 @@ def _withdraw_family(tr: Transfer) -> None:
     for n in STATE.notices.get(fr.guardian_id, []) if fr else []:
         if n.ref == fr.id:
             n.seen = True
+
+
+def _start_family(tr: Transfer, c: Client, link: FamilyLink) -> None:
+    now = time.time()
+    fr = FamilyRequest(STATE.new_id("FR"), tr.id, c.id, link.guardian_id, now, now + FAMILY_TIMEOUT_S)
+    STATE.family[fr.id] = fr
+    tr.family_request_id = fr.id
+    tr.status = "awaiting_family"
+    family.notify_request(fr)
+    g = STATE.clients[link.guardian_id].short
+    total = STATE.session_total(c.id)
+    extra = f" (за сутки новым получателям — {_fmt(total)})" if total > tr.amount else ""
+    STATE.emit("family", c.id, f"Семейный щит: {g} получил(а) уведомление — перевод {_fmt(tr.amount)}{extra} ждёт решения")
+
+
+def _hold(tr: Transfer, c: Client, text: str) -> None:
+    tr.status = "held"
+    STATE.mark_saved(tr)
+    STATE.emit("held", c.id, text, step=_step_for(tr), stopped=True)
 
 
 # ---------------------------------------------------------------------------- meta
@@ -299,24 +326,42 @@ def create_transfer(req: TransferRequest) -> TransferView:
         if req.amount > c.balance:
             raise HTTPException(422, "Недостаточно средств")
         acc = STATE.account(req.account)
-        call = STATE.calls.get(c.id)
-        on_call = bool(call and call.answered and c.id not in STATE.bank_outbound)
-        a = assess(c, acc, req.amount, on_call, req.context.pasted, req.context.app_switches)
+        on_call, recent_call = STATE.pressure(c.id)
+        known = STATE.is_known(c.id, acc.number, now)
+        a = assess(c, acc, req.amount, on_call, req.context.pasted, req.context.app_switches,
+                   recent_call=recent_call, known=known, loan=c.loan, ts=now)
+        # family shield: a new recipient (or her own card in another bank under pressure — the usual first hop) and
+        # >= the limit in 24 h — splitting into parts, hanging up first or a test transfer of 100 ₸ does not help
+        link = STATE.link_for_ward(c.id)
+        risky_recipient = not known or "OWN_OTHER_BANK" in a.reasons
+        shield = bool(link and risky_recipient and STATE.session_total(c.id, now) + req.amount >= link.limit)
         tr = Transfer(STATE.new_id("TR"), c.id, acc.number, req.amount, now, a.score, a.level,
-                      a.reasons, a.kw, a.template, status="completed")
-        if a.level == 0:
-            c.balance -= req.amount
-            c.known_accounts.add(acc.number)
-        else:
-            tr.status = "warning" if a.level == 1 else "questions"
-            STATE.alert(c.id, f"Перевод {_fmt(req.amount)} — Qaqpan поставил на паузу",
-                        f"{_fmt(req.amount)} аударым — Qaqpan тоқтатты")
+                      a.reasons, a.kw, a.template, status="completed", shield=shield, pressure=on_call or recent_call)
         STATE.transfers[tr.id] = tr
         STATE.prefill[c.id] = None
         why = ", ".join(reason_text(r, "ru", **a.kw) for r in a.reasons if r != "KNOWN_RECIPIENT")
         flagged = a.level >= 2 and any(r in FLAGGED for r in a.reasons)
         STATE.emit("transfer", c.id, f"{c.short}: перевод {_fmt(req.amount)} → {acc.holder} · риск {a.score:.2f}"
-                   + (f" ({why})" if why else ""), step="received" if flagged else None)
+                   + (f" ({why})" if why else ""), step="received" if flagged and not SHADOW() else None)
+        if SHADOW() and (a.level or shield):
+            # pilot mode: score and log, never delay a real client's money
+            would = "семейный щит" if shield else "пауза и вопросы" if a.level >= 2 else "предупреждение"
+            STATE.emit("shadow", c.id, f"Теневой режим: перевод {_fmt(req.amount)} прошёл, Qaqpan бы включил: {would}")
+            a.level = 0
+            shield = tr.shield = False
+        if a.level == 0 and not shield:
+            c.balance -= req.amount
+            STATE.first_paid.setdefault((c.id, acc.number), now)
+            tr.status = "completed"
+        else:
+            STATE.alert(c.id, f"Перевод {_fmt(req.amount)} — Qaqpan поставил на паузу",
+                        f"{_fmt(req.amount)} аударым — Qaqpan тоқтатты")
+            if a.level >= 2:
+                tr.status = "questions"
+            elif shield and link:
+                _start_family(tr, c, link)
+            else:
+                tr.status = "warning"
         return _view(tr)
 
 
@@ -330,24 +375,19 @@ def answer_questions(tid: str, req: AnswersRequest) -> TransferView:
         tr.answers = req.answers
         said_yes = any(req.answers)
         flagged = any(r in FLAGGED for r in tr.reasons)
+        link = STATE.link_for_ward(c.id)
         if said_yes:
+            # the client confirmed the pressure herself: the bank decides, the guardian is informed but cannot approve
             tr.level = 3
             tr.reasons.append("SAID_YES")
-        link = STATE.link_for_ward(c.id)
-        if link and tr.amount >= link.limit:
-            # family shield: works even if the scammer coached the victim to answer «no»
-            now = time.time()
-            fr = FamilyRequest(STATE.new_id("FR"), tr.id, c.id, link.guardian_id, now, now + FAMILY_TIMEOUT_S)
-            STATE.family[fr.id] = fr
-            tr.family_request_id = fr.id
-            tr.status = "awaiting_family"
-            family.notify_request(fr)
-            g = STATE.clients[link.guardian_id].short
-            STATE.emit("family", c.id, f"Семейный щит: {g} получил(а) уведомление — перевод {_fmt(tr.amount)} ждёт решения")
-        elif said_yes or flagged:
-            tr.status = "held"
-            STATE.emit("held", c.id, f"{c.short}: перевод {_fmt(tr.amount)} остановлен, банк перезвонит",
-                       step=_step_for(tr), stopped=True)
+            _hold(tr, c, f"{c.short}: подтвердила признаки обмана — перевод {_fmt(tr.amount)} остановлен, решение за банком")
+            if link and tr.shield:
+                family.notify_confirmed(c.id, tr)
+        elif tr.shield and link:
+            # works even if the scammer coached the victim to answer «no»
+            _start_family(tr, c, link)
+        elif flagged:
+            _hold(tr, c, f"{c.short}: перевод {_fmt(tr.amount)} остановлен — счёт получателя в жалобах")
         else:
             tr.status = "warning"
         return _view(tr)
@@ -361,6 +401,7 @@ def cancel_transfer(tid: str) -> TransferView:
             raise HTTPException(409, f"Перевод уже в статусе {tr.status}")
         tr.status = "cancelled"
         _withdraw_family(tr)
+        STATE.mark_saved(tr)
         c = STATE.clients[tr.client_id]
         STATE.emit("cancel", c.id, f"{c.short}: отменил(а) перевод {_fmt(tr.amount)} после предупреждения Qaqpan",
                    step=_step_for(tr), stopped=True)
@@ -378,6 +419,7 @@ def proceed_transfer(tid: str) -> TransferView:
             raise HTTPException(422, "Недостаточно средств")
         c.balance -= tr.amount
         tr.status = "completed"
+        STATE.first_paid.setdefault((c.id, tr.account), time.time())
         STATE.emit("transfer_done", c.id, f"{c.short}: перевод {_fmt(tr.amount)} выполнен после предупреждения")
         return _view(tr)
 
@@ -391,6 +433,8 @@ def family_decision(rid: str, req: FamilyDecision) -> dict:
         fr = STATE.family.get(rid)
         if not fr:
             raise HTTPException(404, "Запрос не найден")
+        if req.client_id != fr.guardian_id:  # the ward (or a scammer holding her phone) cannot approve for the son
+            raise HTTPException(403, "Решение принимает только доверенное лицо")
         if fr.status != "pending":
             raise HTTPException(409, "Запрос уже закрыт")
         tr = STATE.transfers[fr.transfer_id]
@@ -404,6 +448,7 @@ def family_decision(rid: str, req: FamilyDecision) -> dict:
             if tr.amount <= c.balance:
                 c.balance -= tr.amount
                 tr.status = "completed"
+                STATE.first_paid.setdefault((c.id, tr.account), time.time())
                 STATE.emit("family_ok", c.id, f"{g.short} подтвердил(а) перевод {_fmt(tr.amount)}")
             else:
                 tr.status, tr.note = "cancelled", "insufficient"
@@ -411,14 +456,15 @@ def family_decision(rid: str, req: FamilyDecision) -> dict:
         else:
             fr.status = "declined"
             tr.status = "cancelled"
-            # the guardian's «no» is a signal for everyone: the recipient account gets flagged like a complaint
+            STATE.mark_saved(tr)
+            # the guardian's «no» is a signal, not a complaint: it may be an honest seller (a sofa, a car).
+            # The account is flagged for everyone only when the ward confirms with a complaint about this transfer.
             acc = STATE.accounts[tr.account]
             if (g.id, acc.number) not in STATE.complaints_by:
                 STATE.complaints_by.add((g.id, acc.number))
-                acc.complaints += 1
+                acc.signals += 1
             STATE.alert(c.id, f"{g.short} отклонил(а) перевод", f"{g.short} аударымды қабылдамады")
-            STATE.emit("family_no", c.id, f"{g.short} отклонил(а) перевод {_fmt(tr.amount)} — деньги {c.short} спасены, "
-                       "счёт получателя помечен для всех клиентов",
+            STATE.emit("family_no", c.id, f"{g.short} отклонил(а) перевод {_fmt(tr.amount)} — деньги {c.short} спасены",
                        step="persuaded", stopped=True)
         return {"status": fr.status, "transfer": _view(tr).model_dump()}
 
@@ -445,30 +491,49 @@ def shield_keep(ward_id: str) -> dict:
 
 # ---------------------------------------------------------------------------- layer 4: complaints
 
+def _confirmed(tr: Transfer) -> bool:
+    """A complaint confirms the account only for a transfer Qaqpan itself stopped under pressure:
+    during or right after a call, and the client said «yes» or the guardian declined it."""
+    fr = STATE.family.get(tr.family_request_id or "")
+    stopped = bool(tr.answers and any(tr.answers)) or bool(fr and fr.status == "declined")
+    return tr.pressure and stopped
+
+
 @app.post("/api/complaints", response_model=ComplaintResult)
 def complain(req: ComplaintRequest) -> ComplaintResult:
     c = _client(req.client_id)
     with STATE.lock:
+        tr = None
         if req.transfer_id:
-            acc = STATE.accounts[_transfer(req.transfer_id).account]
+            tr = _transfer(req.transfer_id)
+            if tr.client_id != c.id:
+                raise HTTPException(404, "Перевод не найден")
+            acc = STATE.accounts[tr.account]
         elif req.account and 12 <= len(digits(req.account)) <= 20:
-            acc = STATE.account(req.account)
+            acc = STATE.account(req.account)  # by number only: a signal, one dishonest client cannot hold a seller
         else:
             raise HTTPException(422, "Нужен перевод или номер счёта")
+        confirmed = bool(tr and _confirmed(tr))
         key = (c.id, acc.number)
-        first = key not in STATE.complaints_by  # one client = one complaint per account
         call = STATE.calls.get(c.id)
         number = call.number if call else STATE.last_call_number.get(c.id)
         if number in (BANK_NUMBER, NATIVE_NUMBER):
             number = None
-        if first:
+        if key not in STATE.complaints_by or confirmed and key not in STATE.confirmed_by:  # one client = one complaint
+            first = key not in STATE.complaints_by
             STATE.complaints_by.add(key)
-            acc.complaints += 1
-            if number:
+            if confirmed:
+                STATE.confirmed_by.add(key)
+                acc.complaints += 1
+                STATE.emit("complaint", c.id, f"Жалоба {c.short} подтверждена остановленным переводом: счёт {acc.display} "
+                           "помечен — все, кто попробует туда перевести, получат паузу и вопросы")
+            elif first:
+                acc.signals += 1
+                STATE.emit("complaint", c.id, f"Жалоба {c.short} на счёт {acc.display} — непроверенный сигнал, добавлен к риску")
+            if number and first:
                 STATE.number_complaints[number] = STATE.number_complaints.get(number, 0) + 1
-            STATE.emit("complaint", c.id, f"Жалоба {c.short}: счёт {acc.display} помечен — "
-                       "все клиенты, кто попробует туда перевести, получат предупреждение")
-        return ComplaintResult(message=t("complaint.done", c.lang), account_complaints=acc.complaints, number_flagged=number)
+        return ComplaintResult(message=t("complaint.done", c.lang), account_complaints=acc.complaints,
+                               confirmed=confirmed, number_flagged=number)
 
 
 # ---------------------------------------------------------------------------- help
@@ -481,12 +546,14 @@ def victim_help(req: VictimRequest) -> VictimHelp:
     tr = STATE.transfers.get(req.transfer_id or "")
     if tr is None or tr.client_id != c.id:  # opened from the home screen: use the latest suspicious transfer
         tr = next((x for x in reversed(list(STATE.transfers.values())) if x.client_id == c.id and x.level >= 2), None)
+    attempt = False
     if tr is not None and tr.client_id == c.id:
         amount, account = tr.amount, STATE.accounts[tr.account].display
+        attempt = tr.status != "completed"  # stopped by Qaqpan: a report of an attempt, not «I transferred»
     call = STATE.calls.get(c.id)
     phone_no = STATE.last_call_number.get(c.id) or (call.number if call and call.number != NATIVE_NUMBER else None)
     scheme = "полиции / банка" if lang == "ru" else "полиция / банк"
-    return victim.build(lang, c.name, amount, account, phone_no, scheme, req.story)
+    return victim.build(lang, c.name, amount, account, phone_no, scheme, req.story, attempt)
 
 
 @app.post("/api/assistant", response_model=assistant.AssistantReply)
@@ -506,6 +573,7 @@ def stage(since: int = 0) -> dict:
         return {
             "steps": sorted(STATE.steps),
             "stopped": STATE.stopped,
+            "saved": STATE.saved,
             "events": [{"seq": e.seq, "ts": e.ts, "kind": e.kind, "client_id": e.client_id, "text": e.text,
                         "step": e.step, "stopped": e.stopped} for e in STATE.events if e.seq > since][-30:],
         }
