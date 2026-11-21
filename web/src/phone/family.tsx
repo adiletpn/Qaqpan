@@ -233,12 +233,6 @@ export function FamilyScreen({ clientId, lang, shield, onBack, onChanged }: { cl
         {shield.role === 'ward' && (shield.disable_at
           ? <Button disabled={busy} onClick={() => act(() => api.shieldKeep(clientId))}>{L('shield_keep')}</Button>
           : <Button tone="ghost" disabled={busy} onClick={() => act(() => api.shieldDisable(clientId))}>{L('shield_disable')}</Button>)}
-        {shield.role === 'none' && (
-          <>
-            <Button disabled>{L('invite')}</Button>
-            <div className="text-center text-xs text-slate-400">{L('invite_soon')}</div>
-          </>
-        )}
       </div>
     </div>
   )

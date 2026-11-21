@@ -18,7 +18,7 @@ const LAYERS = [
   { n: 1, step: 'Написали', title: 'Проверка сообщений', text: 'SMS, ссылка или скриншот — ответ за секунду на русском или казахском: мошенничество или нет и почему.', icon: 'msg' },
   { n: 2, step: 'Позвонили', title: '«Банк мне звонит?»', text: 'Номер можно подделать, журнал звонков банка — нет. Одна кнопка во время звонка.', icon: 'phone' },
   { n: 3, step: 'Уговорили перевести', title: 'Умный перевод и семейный щит', text: 'Звонок + новый получатель + почти все деньги → пауза и вопросы. Крупный перевод ждёт ответа близкого.', icon: 'family' },
-  { n: 4, step: 'Получили деньги', title: 'Сеть защиты', text: 'Жалоба одного клиента или «нет» от сына — и все, кто переводит на этот счёт, получают предупреждение.', icon: 'shield' },
+  { n: 4, step: 'Получили деньги', title: 'Сеть защиты', text: 'Жалоба на остановленный перевод — и все, кто переводит на этот счёт, получают паузу и вопросы.', icon: 'shield' },
 ]
 
 function Index() {
@@ -27,7 +27,6 @@ function Index() {
       <div className="mx-auto max-w-5xl px-6 py-12 md:py-16">
         <div className="flex items-center gap-3">
           <div className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-500"><Icon name="shield" className="h-7 w-7" /></div>
-          <span className="text-sm font-semibold text-emerald-300">ITU Hackathon 2026 · Fintech case · Банк ЦентрКредит</span>
         </div>
         <h1 className="mt-6 text-5xl font-black tracking-tight md:text-6xl">Qaqpan</h1>
         <p className="mt-3 max-w-2xl text-xl text-slate-300">Капкан для мошенников внутри приложения банка.</p>
@@ -37,9 +36,8 @@ function Index() {
         </p>
 
         <div className="mt-8 flex flex-wrap gap-3">
-          <Link to="/stage" className="rounded-2xl bg-emerald-500 px-5 py-3 font-semibold text-white hover:bg-emerald-400">Открыть демо ›</Link>
+          <Link to="/stage" className="rounded-2xl bg-emerald-500 px-5 py-3 font-semibold text-white hover:bg-emerald-400">Посмотреть, как работает ›</Link>
           <Link to="/phone/aigerim" className="rounded-2xl bg-white/10 px-5 py-3 font-semibold ring-1 ring-white/15 hover:bg-white/15">Приложение на телефоне</Link>
-          <Link to="/director" className="rounded-2xl px-5 py-3 font-semibold text-slate-300 ring-1 ring-white/10 hover:bg-white/5">Пульт ведущего</Link>
         </div>
 
         <div className="mt-12 grid gap-3 md:grid-cols-2">
@@ -66,7 +64,7 @@ function Index() {
         </div>
 
         <p className="mt-10 text-xs text-slate-600">
-          Прототип. Клиенты, счета и звонки вымышленные; журнал звонков банка, процессинг и база Антифрод-центра симулированы.
+          Клиенты, счета и звонки вымышленные.
         </p>
       </div>
     </div>

@@ -94,11 +94,11 @@ class _RootState extends State<Root> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Сервер демо'),
+        title: const Text('Сервер'),
         content: StatefulBuilder(
           builder: (ctx, setInner) => Column(mainAxisSize: MainAxisSize.min, children: [
             TextField(controller: s, keyboardType: TextInputType.url, decoration: const InputDecoration(labelText: 'Адрес сервера')),
-            TextField(controller: k, decoration: const InputDecoration(labelText: 'Ключ ведущего (если стенд закрыт)')),
+            TextField(controller: k, decoration: const InputDecoration(labelText: 'Ключ (если сервер закрыт)')),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('В стиле BCC'),
@@ -203,7 +203,7 @@ class ProfilePicker extends StatelessWidget {
           const Text('Капкан для мошенников внутри приложения банка',
               style: TextStyle(fontSize: 16, color: Color(0xFF475569))),
           const SizedBox(height: 28),
-          const Text('Чей это телефон в демо?',
+          const Text('Выберите профиль',
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF64748B))),
           const SizedBox(height: 10),
           for (final p in profiles)
@@ -340,10 +340,10 @@ class _AppWebViewState extends State<AppWebView> {
       showDragHandle: true,
       builder: (ctx) => SafeArea(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          ListTile(leading: const Icon(Icons.swap_horiz), title: const Text('Сменить профиль демо'),
+          ListTile(leading: const Icon(Icons.swap_horiz), title: const Text('Сменить профиль'),
               onTap: () => Navigator.pop(ctx, 'switch')),
           ListTile(leading: const Icon(Icons.refresh), title: const Text('Обновить'), onTap: () => Navigator.pop(ctx, 'reload')),
-          ListTile(leading: const Icon(Icons.dns_outlined), title: const Text('Сервер демо'),
+          ListTile(leading: const Icon(Icons.dns_outlined), title: const Text('Сервер'),
               onTap: () => Navigator.pop(ctx, 'server')),
           ListTile(leading: const Icon(Icons.close), title: const Text('Выйти'), onTap: () => Navigator.pop(ctx, 'exit')),
         ]),
