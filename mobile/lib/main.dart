@@ -7,13 +7,15 @@
 //   * Android back button that walks back through the app's screens;
 //   * profile choice for the demo (Aigerim, Erzhan, Madina), remembered between launches.
 //
-// Server: --dart-define=QAQPAN_SERVER=https://... (defaults to the public Railway deployment).
+// Server: --dart-define=QAQPAN_SERVER=https://... (defaults to the public Railway deployment). On the venue it can be
+// changed without rebuilding: long-press the logo on the profile screen -> server address and presenter key.
 
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 const kServer = String.fromEnvironment('QAQPAN_SERVER', defaultValue: 'https://qaqpan-production.up.railway.app');
@@ -68,6 +70,8 @@ class Root extends StatefulWidget {
 
 class _RootState extends State<Root> {
   String? profile;
+  String server = kServer;
+  String key = '';
   bool loaded = false;
 
   @override
@@ -75,8 +79,38 @@ class _RootState extends State<Root> {
     super.initState();
     SharedPreferences.getInstance().then((p) => setState(() {
           profile = p.getString('profile');
+          server = p.getString('server') ?? kServer;
+          key = p.getString('key') ?? '';
           loaded = true;
         }));
+  }
+
+  /// Hidden presenter settings: the stand's address and the presenter key (for a locked stand, QAQPAN_LOCK=1).
+  Future<void> settings() async {
+    final s = TextEditingController(text: server), k = TextEditingController(text: key);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Сервер демо'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(controller: s, keyboardType: TextInputType.url, decoration: const InputDecoration(labelText: 'Адрес сервера')),
+          TextField(controller: k, decoration: const InputDecoration(labelText: 'Ключ ведущего (если стенд закрыт)')),
+        ]),
+        actions: [
+          TextButton(onPressed: () => s.text = kServer, child: const Text('По умолчанию')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Сохранить')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final p = await SharedPreferences.getInstance();
+    final url = s.text.trim().replaceAll(RegExp(r'/+$'), '');
+    await p.setString('server', url.isEmpty ? kServer : url);
+    await p.setString('key', k.text.trim());
+    setState(() {
+      server = url.isEmpty ? kServer : url;
+      key = k.text.trim();
+    });
   }
 
   Future<void> choose(String? id) async {
@@ -95,8 +129,9 @@ class _RootState extends State<Root> {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 350),
       child: profile == null
-          ? ProfilePicker(key: const ValueKey('pick'), onPick: choose)
-          : AppWebView(key: ValueKey(profile), profile: profile!, onSwitchProfile: () => choose(null)),
+          ? ProfilePicker(key: const ValueKey('pick'), onPick: choose, onSettings: settings, server: server)
+          : AppWebView(key: ValueKey('$profile@$server'), profile: profile!, server: server, presenterKey: key,
+              onSwitchProfile: () => choose(null), onSettings: settings),
     );
   }
 }
@@ -135,15 +170,20 @@ class Splash extends StatelessWidget {
 }
 
 class ProfilePicker extends StatelessWidget {
-  const ProfilePicker({super.key, required this.onPick});
+  const ProfilePicker({super.key, required this.onPick, this.onSettings, this.server = kServer});
   final ValueChanged<String> onPick;
+  final VoidCallback? onSettings;
+  final String server;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: ListView(padding: const EdgeInsets.fromLTRB(20, 32, 20, 24), children: [
-          const Logo(size: 64),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: GestureDetector(onLongPress: onSettings, child: const Logo(size: 64)),
+          ),
           const SizedBox(height: 20),
           const Text('Qaqpan', style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900, color: kInk)),
           const SizedBox(height: 6),
@@ -190,6 +230,10 @@ class ProfilePicker extends StatelessWidget {
             'Номер и разговор Qaqpan не видит.',
             style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8), height: 1.4),
           ),
+          if (server != kServer) ...[
+            const SizedBox(height: 8),
+            Text('Сервер: $server', style: const TextStyle(fontSize: 12, color: kTeal)),
+          ],
         ]),
       ),
     );
@@ -197,9 +241,18 @@ class ProfilePicker extends StatelessWidget {
 }
 
 class AppWebView extends StatefulWidget {
-  const AppWebView({super.key, required this.profile, required this.onSwitchProfile});
+  const AppWebView(
+      {super.key,
+      required this.profile,
+      required this.onSwitchProfile,
+      this.server = kServer,
+      this.presenterKey = '',
+      this.onSettings});
   final String profile;
+  final String server;
+  final String presenterKey;
   final VoidCallback onSwitchProfile;
+  final VoidCallback? onSettings;
 
   @override
   State<AppWebView> createState() => _AppWebViewState();
@@ -212,6 +265,9 @@ class _AppWebViewState extends State<AppWebView> {
   bool ready = false;
   String? error;
 
+  Uri get home => Uri.parse('${widget.server}/phone/${widget.profile}'
+      '${widget.presenterKey.isEmpty ? '' : '?key=${Uri.encodeQueryComponent(widget.presenterKey)}'}');
+
   @override
   void initState() {
     super.initState();
@@ -219,6 +275,13 @@ class _AppWebViewState extends State<AppWebView> {
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(kBg)
       ..setNavigationDelegate(NavigationDelegate(
+        // «Позвонить маме» (tel:) and links to other sites open in the phone's own apps, not inside the WebView
+        onNavigationRequest: (req) {
+          final uri = Uri.tryParse(req.url);
+          if (uri == null || uri.host == home.host && uri.scheme.startsWith('http')) return NavigationDecision.navigate;
+          launchUrl(uri, mode: LaunchMode.externalApplication).catchError((_) => false);
+          return NavigationDecision.prevent;
+        },
         onPageFinished: (_) {
           lastOnCall = null; // re-push the call state into the fresh page
           if (mounted) setState(() => ready = true);
@@ -227,7 +290,7 @@ class _AppWebViewState extends State<AppWebView> {
           if (e.isForMainFrame ?? true) setState(() => error = 'Нет связи с сервером Qaqpan');
         },
       ))
-      ..loadRequest(Uri.parse('$kServer/phone/${widget.profile}'));
+      ..loadRequest(home);
     _call.invokeMethod('requestPhonePermission').catchError((_) => null);
     callTimer = Timer.periodic(const Duration(seconds: 1), (_) => pushCallState());
   }
@@ -247,7 +310,7 @@ class _AppWebViewState extends State<AppWebView> {
       error = null;
       ready = false;
     });
-    await web.loadRequest(Uri.parse('$kServer/phone/${widget.profile}'));
+    await web.loadRequest(home);
   }
 
   /// Android back: go one screen back inside the app; on the home screen offer to switch profile or exit.
@@ -263,12 +326,15 @@ class _AppWebViewState extends State<AppWebView> {
           ListTile(leading: const Icon(Icons.swap_horiz), title: const Text('Сменить профиль демо'),
               onTap: () => Navigator.pop(ctx, 'switch')),
           ListTile(leading: const Icon(Icons.refresh), title: const Text('Обновить'), onTap: () => Navigator.pop(ctx, 'reload')),
+          ListTile(leading: const Icon(Icons.dns_outlined), title: const Text('Сервер демо'),
+              onTap: () => Navigator.pop(ctx, 'server')),
           ListTile(leading: const Icon(Icons.close), title: const Text('Выйти'), onTap: () => Navigator.pop(ctx, 'exit')),
         ]),
       ),
     );
     if (action == 'switch') widget.onSwitchProfile();
     if (action == 'reload') retry();
+    if (action == 'server') widget.onSettings?.call();
     if (action == 'exit') SystemNavigator.pop();
   }
 
