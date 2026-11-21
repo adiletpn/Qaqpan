@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { money } from '../api'
 import BankApp from '../phone/BankApp'
 import { Icon } from '../ui'
+import { setTheme, useTheme } from '../theme'
 import { ACTIONS, STEPS, useDirectorHotkeys, useStage } from './shared'
 
 const PHONES = [
@@ -77,11 +78,16 @@ export default function Stage() {
   useDirectorHotkeys(setWarn)
   useEffect(() => { if (!warn) return; const t = setTimeout(() => setWarn(null), 4000); return () => clearTimeout(t) }, [warn])
   const [help, setHelp] = useState(false)
+  const theme = useTheme()
   useEffect(() => {
-    const h = (e: KeyboardEvent) => { if (e.key === '?' || e.code === 'KeyH') setHelp(v => !v) }
+    const h = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement)?.tagName === 'INPUT' || (e.target as HTMLElement)?.tagName === 'TEXTAREA') return
+      if (e.key === '?' || e.code === 'KeyH') setHelp(v => !v)
+      if (e.code === 'KeyT' && !e.metaKey && !e.ctrlKey) setTheme(theme === 'bcc' ? 'default' : 'bcc')
+    }
     window.addEventListener('keydown', h)
     return () => window.removeEventListener('keydown', h)
-  }, [])
+  }, [theme])
   const events = (stage?.events ?? []).filter(e => e.kind !== 'reset').slice(-3).reverse()
   if (vp.w < 900) {
     return (
@@ -138,6 +144,7 @@ export default function Stage() {
           {ACTIONS.map(a => (
             <div key={a.key} className="flex gap-3 py-0.5"><kbd className="w-6 text-center font-mono text-emerald-400">{a.key}</kbd><span className="text-slate-300">{a.title}</span></div>
           ))}
+          <div className="flex gap-3 py-0.5"><kbd className="w-6 text-center font-mono text-emerald-400">T</kbd><span className="text-slate-300">Стиль BCC / свой стиль телефонов</span></div>
         </div>
       )}
 

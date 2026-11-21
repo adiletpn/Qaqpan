@@ -4,6 +4,7 @@ import { api, type CallVerify, type Lang, type Snapshot, type TransferView } fro
 import { tr } from '../i18n'
 import { DEPTH, pageVariants } from '../motion'
 import { useNativeCallSignal } from '../native'
+import { useTheme } from '../theme'
 import { FamilyScreen, FamilySheet, PushBanner } from './family'
 import { AssistantScreen } from './assistant'
 import { Home } from './home'
@@ -14,6 +15,7 @@ export type Screen = 'home' | 'check' | 'transfer' | 'result' | 'victim' | 'sche
 
 export default function BankApp({ clientId }: { clientId: string }) {
   const [snap, setSnap] = useState<Snapshot | null>(null)
+  const theme = useTheme()
   const [offline, setOffline] = useState(false)
   const [screen, setScreenRaw] = useState<Screen>('home')
   const [dir, setDir] = useState(1)
@@ -131,7 +133,12 @@ export default function BankApp({ clientId }: { clientId: string }) {
   })()
 
   return (
-    <div className="relative flex h-full flex-col overflow-hidden bg-slate-50 text-slate-900">
+    <div className={`relative flex h-full flex-col overflow-hidden bg-slate-50 text-slate-900 ${theme === 'bcc' ? 'theme-bcc' : ''}`}>
+      {theme === 'bcc' && (
+        <div className="shrink-0 bg-[#0d0d0c] px-3 py-1 text-center text-[10px] font-medium tracking-wide text-[#e8d9a8]">
+          {lang === 'kk' ? 'Хакатон прототипі · BCC стилінде · банк қосымшасы емес' : 'Прототип для хакатона · в стиле BCC · не приложение банка'}
+        </div>
+      )}
       <AnimatePresence initial={false}>
         {offline && (
           <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="z-20 shrink-0 overflow-hidden bg-amber-500 text-center text-xs font-semibold text-white">

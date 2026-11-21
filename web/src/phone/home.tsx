@@ -70,7 +70,7 @@ export function Home({ snap, lang, onNav, onVerify, onCheck, onToggleLang, onOpe
         </button>
       )}
 
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-teal-700 via-teal-800 to-slate-900 p-5 text-white shadow-lg">
+      <div className="balance-card relative overflow-hidden rounded-3xl bg-gradient-to-br from-teal-700 via-teal-800 to-slate-900 p-5 text-white shadow-lg">
         <div className="absolute -right-10 -top-12 h-40 w-40 rounded-full bg-white/5" />
         <div className="flex items-center justify-between text-sm text-teal-100">
           <span>{L('balance')}</span>

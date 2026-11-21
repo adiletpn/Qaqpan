@@ -13,3 +13,20 @@ html, body { overscroll-behavior: none; }
 button, a { touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 input, textarea { font-size: 16px; } /* no zoom-on-focus in iOS Safari */
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+
+/* «В стиле BCC» (?theme=bcc): BCC brand-book palette — Green, Gold, Black, White. Shades are approximate:
+   the brand book does not publish HEX codes. Tailwind v4 utilities read these variables, so the whole phone UI
+   follows without touching components. */
+.theme-bcc {
+  --bcc-gold: #c9a44c;
+  --color-teal-50: #eef8f2; --color-teal-100: #d4eedf; --color-teal-200: #a9dcbf; --color-teal-300: #73c49a;
+  --color-teal-400: #3fa874; --color-teal-500: #1d8f5a; --color-teal-600: #0f7a4a; --color-teal-700: #0b6a40;
+  --color-teal-800: #0a5534; --color-teal-900: #08432a;
+  --color-emerald-50: #eef8f2; --color-emerald-100: #d4eedf; --color-emerald-200: #e8d9a8; --color-emerald-300: #d9bf72;
+  --color-emerald-400: #3fa874; --color-emerald-500: #1d8f5a; --color-emerald-600: #0f7a4a; --color-emerald-700: #0b6a40;
+  --color-emerald-800: #0a5534;
+  --color-slate-50: #f6f5f1;
+}
+.theme-bcc .balance-card { background-image: linear-gradient(135deg, #1d1d1b 0%, #0d0d0c 55%, #2b2413 100%) !important; }
+.theme-bcc .balance-card .text-teal-100 { color: #e8d9a8; }
+.theme-bcc .balance-card::after { content: ""; position: absolute; left: 20px; right: 20px; bottom: 0; height: 3px; border-radius: 3px; background: var(--bcc-gold); }

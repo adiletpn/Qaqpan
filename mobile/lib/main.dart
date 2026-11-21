@@ -72,6 +72,7 @@ class _RootState extends State<Root> {
   String? profile;
   String server = kServer;
   String key = '';
+  bool bcc = false;
   bool loaded = false;
 
   @override
@@ -81,6 +82,7 @@ class _RootState extends State<Root> {
           profile = p.getString('profile');
           server = p.getString('server') ?? kServer;
           key = p.getString('key') ?? '';
+          bcc = p.getBool('bcc') ?? false;
           loaded = true;
         }));
   }
@@ -88,14 +90,23 @@ class _RootState extends State<Root> {
   /// Hidden presenter settings: the stand's address and the presenter key (for a locked stand, QAQPAN_LOCK=1).
   Future<void> settings() async {
     final s = TextEditingController(text: server), k = TextEditingController(text: key);
+    var style = bcc;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Сервер демо'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: s, keyboardType: TextInputType.url, decoration: const InputDecoration(labelText: 'Адрес сервера')),
-          TextField(controller: k, decoration: const InputDecoration(labelText: 'Ключ ведущего (если стенд закрыт)')),
-        ]),
+        content: StatefulBuilder(
+          builder: (ctx, setInner) => Column(mainAxisSize: MainAxisSize.min, children: [
+            TextField(controller: s, keyboardType: TextInputType.url, decoration: const InputDecoration(labelText: 'Адрес сервера')),
+            TextField(controller: k, decoration: const InputDecoration(labelText: 'Ключ ведущего (если стенд закрыт)')),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('В стиле BCC'),
+              value: style,
+              onChanged: (v) => setInner(() => style = v),
+            ),
+          ]),
+        ),
         actions: [
           TextButton(onPressed: () => s.text = kServer, child: const Text('По умолчанию')),
           FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Сохранить')),
@@ -107,9 +118,11 @@ class _RootState extends State<Root> {
     final url = s.text.trim().replaceAll(RegExp(r'/+$'), '');
     await p.setString('server', url.isEmpty ? kServer : url);
     await p.setString('key', k.text.trim());
+    await p.setBool('bcc', style);
     setState(() {
       server = url.isEmpty ? kServer : url;
       key = k.text.trim();
+      bcc = style;
     });
   }
 
@@ -130,7 +143,7 @@ class _RootState extends State<Root> {
       duration: const Duration(milliseconds: 350),
       child: profile == null
           ? ProfilePicker(key: const ValueKey('pick'), onPick: choose, onSettings: settings, server: server)
-          : AppWebView(key: ValueKey('$profile@$server'), profile: profile!, server: server, presenterKey: key,
+          : AppWebView(key: ValueKey('$profile@$server@$bcc'), profile: profile!, server: server, presenterKey: key, bcc: bcc,
               onSwitchProfile: () => choose(null), onSettings: settings),
     );
   }
@@ -247,10 +260,12 @@ class AppWebView extends StatefulWidget {
       required this.onSwitchProfile,
       this.server = kServer,
       this.presenterKey = '',
+      this.bcc = false,
       this.onSettings});
   final String profile;
   final String server;
   final String presenterKey;
+  final bool bcc;
   final VoidCallback onSwitchProfile;
   final VoidCallback? onSettings;
 
@@ -265,8 +280,10 @@ class _AppWebViewState extends State<AppWebView> {
   bool ready = false;
   String? error;
 
-  Uri get home => Uri.parse('${widget.server}/phone/${widget.profile}'
-      '${widget.presenterKey.isEmpty ? '' : '?key=${Uri.encodeQueryComponent(widget.presenterKey)}'}');
+  Uri get home => Uri.parse('${widget.server}/phone/${widget.profile}').replace(queryParameters: {
+        'theme': widget.bcc ? 'bcc' : 'default',
+        if (widget.presenterKey.isNotEmpty) 'key': widget.presenterKey,
+      });
 
   @override
   void initState() {
