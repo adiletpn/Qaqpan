@@ -65,6 +65,8 @@ class TransferView(BaseModel):
     reasons: list[str] = []
     guardian_name: str | None = None
     balance: float
+    release_at: float | None = None   # «Отложить на час»: when it goes out by itself
+    analysis: dict | None = None      # Qaqpan's conclusion during the hour (approved texts)
 
 
 class AnswersRequest(BaseModel):
@@ -74,6 +76,15 @@ class AnswersRequest(BaseModel):
 class FamilyDecision(BaseModel):
     client_id: str  # who decides: must be the guardian of this request
     approve: bool
+
+
+class RecipientCheck(BaseModel):
+    client_id: str
+    account: str = Field(min_length=6, max_length=40)
+
+
+class CodewordRequest(BaseModel):
+    agreed: bool
 
 
 class ComplaintRequest(BaseModel):

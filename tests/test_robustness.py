@@ -352,3 +352,66 @@ def test_sandboxes_are_isolated_and_drive_themselves(monkeypatch):
     tr = c.post("/api/transfers", json={"client_id": "aigerim", "account": SCAM, "amount": 900_000}, headers=a).json()
     assert tr["status"] == "questions"
     assert c.get("/api/phone/aigerim", headers=b).json()["transfers"] == []
+
+
+# ---------------------------------------------------------------- «Отложить на час», получатель, кодовое слово
+
+def warning_transfer():
+    """Madina, no shield: a new recipient during a call -> questions -> «no» -> warning."""
+    c.post("/api/phone/madina/native-call", json={"on_call": True})
+    tr = send(200_000, "KZ99 8562 0000 0555 0002", "madina")
+    if tr["status"] == "questions":
+        tr = c.post(f"/api/transfers/{tr['id']}/answers", json={"answers": [False] * 3}).json()
+    assert tr["status"] == "warning"
+    return tr
+
+
+def test_delay_an_hour_then_qaqpan_concludes_and_the_bank_checks():
+    tr = warning_transfer()
+    d = c.post(f"/api/transfers/{tr['id']}/delay").json()
+    assert d["status"] == "delayed" and d["release_at"] - time.time() > 3500 and "отложен" in d["title"]
+    view = c.get("/api/phone/madina").json()["transfers"][-1]
+    assert view["analysis"]["verdict"] in ("likely_scam", "unclear") and view["analysis"]["reasons"]
+    assert any("звонка" in r for r in view["analysis"]["reasons"])
+    assert c.post(f"/api/transfers/{tr['id']}/proceed").status_code == 409  # cannot skip the hour
+    c.post("/api/director/skip_hour")
+    after = c.get("/api/phone/madina").json()["transfers"][-1]
+    if view["analysis"]["verdict"] == "likely_scam":
+        assert after["status"] == "held" and "проверит сотрудник банка" in after["message"]
+    else:
+        assert after["status"] == "completed"
+
+
+def test_a_delayed_transfer_can_be_cancelled_and_counts_as_saved():
+    tr = warning_transfer()
+    c.post(f"/api/transfers/{tr['id']}/delay")
+    assert c.post(f"/api/transfers/{tr['id']}/cancel").json()["status"] == "cancelled"
+    assert c.get("/api/stage").json()["saved"] == 200_000
+
+
+def test_calm_known_situation_is_released_after_the_hour():
+    from api.delay import rules
+    v, codes = rules({k: False for k in ("PRESSURE_CALL", "SCAM_MESSAGE_TODAY", "BANK_NOT_CALLING", "NEW_RECIPIENT",
+                                          "LARGE_SHARE", "RECIPIENT_REPORTED", "REPEATED_ATTEMPTS", "OWN_OTHER_BANK", "LOAN_FRESH")})
+    assert v == "likely_ok" and codes == ["NO_RISK_SIGNS"]
+
+
+def test_recipient_check_says_only_complaints_or_not():
+    scam_transfer_to_family(answers=(True, False, False))
+    tr_id = [t for t in STATE.transfers.values() if t.client_id == "aigerim"][-1].id
+    c.post("/api/complaints", json={"client_id": "aigerim", "transfer_id": tr_id})
+    r = c.post("/api/recipients/check", json={"client_id": "madina", "account": SCAM}).json()
+    assert r["status"] == "complaints" and "Данияр" not in r["message"]
+    assert c.post("/api/recipients/check", json={"client_id": "madina", "account": "KZ77 0000 1111 2222 3333"}).json()["status"] == "clean"
+    assert c.post("/api/recipients/check", json={"client_id": "aigerim", "account": OWN_CARD}).json()["status"] == "own"
+    assert "KZ77000011112222" not in "".join(STATE.accounts)  # a check creates no account record
+
+
+def test_family_code_word_is_suggested_for_the_relative_scheme():
+    text = "Мама, это я, у меня новый номер. Срочно нужны деньги, скинь 50 000"
+    r = c.post("/api/messages/check", json={"client_id": "aigerim", "text": text, "lang": "ru"}).json()
+    assert "Договоритесь" in r["tip"]
+    c.post("/api/family/aigerim/codeword", json={"agreed": True})
+    assert c.get("/api/phone/erzhan").json()["shield"]["codeword"] is True  # the son shares it
+    r = c.post("/api/messages/check", json={"client_id": "aigerim", "text": text, "lang": "ru"}).json()
+    assert "кодовое слово" in r["tip"] and "Не знает" in r["tip"]

@@ -144,16 +144,28 @@ def notify_confirmed(ward_id: str, tr: Transfer) -> None:
 
 def shield_info(cid: str, lang: Lang) -> dict:
     now = time.time()
+    codeword = cid in STATE.codewords
     link = STATE.links.get(cid)
     if link:
         g = STATE.clients[link.guardian_id]
         return {"role": "ward", "guardian_name": g.short, "guardian_title": link.guardian_title[lang],
-                "limit": link.limit, "active": link.active(now),
+                "limit": link.limit, "active": link.active(now), "codeword": codeword,
                 "disable_at": link.disable_at if link.disable_at and link.active(now) else None}
     wards = [{"ward_id": lk.ward_id, "name": STATE.clients[lk.ward_id].short, "title": lk.ward_title[lang],
               "limit": lk.limit, "active": lk.active(now), "disable_at": lk.disable_at if lk.active(now) else None}
              for lk in STATE.links_for_guardian(cid)]
-    return {"role": "guardian", "wards": wards} if wards else {"role": "none"}
+    return {"role": "guardian", "wards": wards, "codeword": codeword} if wards else {"role": "none", "codeword": codeword}
+
+
+def notify_delayed(ward_id: str, tr: Transfer) -> None:
+    link = STATE.links[ward_id]
+    amount = _fmt(tr.amount)
+    STATE.notify(link.guardian_id, "info", {"ru": "Qaqpan · Семейный щит", "kk": "Qaqpan · Отбасылық қалқан"},
+                 {"ru": f"{link.ward_title['ru']} отложила перевод {amount} на час — Qaqpan засомневался. Можно позвонить "
+                        f"{link.ward_title_dat['ru']} и спокойно обсудить.",
+                  "kk": f"{link.ward_title['kk']} {amount} аударымды бір сағатқа қалдырды — Qaqpan күмәнданды. "
+                        f"{link.ward_title_dat['kk'].capitalize()} қоңырау шалып, асықпай сөйлесуге болады."},
+                 ref=tr.id)
 
 
 def request_disable(ward_id: str) -> FamilyLink:

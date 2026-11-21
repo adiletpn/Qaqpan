@@ -58,6 +58,11 @@ def context_for(cid: str, lang: str) -> str:
     held = [t for t in STATE.transfers.values() if t.client_id == cid and t.status in ("questions", "held", "awaiting_family", "escalated")]
     for t in held[-1:]:
         lines.append(f"- перевод {t.amount:,.0f} ₸ сейчас на паузе (Qaqpan заподозрил обман)".replace(",", " "))
+    for t in [t for t in STATE.transfers.values() if t.client_id == cid and t.status == "delayed"][-1:]:
+        lines.append(f"- клиент отложил перевод {t.amount:,.0f} ₸ на час, Qaqpan анализирует ситуацию".replace(",", " "))
+    if cid in STATE.codewords:
+        lines.append("- семья клиента договорилась о кодовом слове (само слово Qaqpan не знает): при «родственнике в беде» "
+                     "советуй спросить это слово")
     link = STATE.link_for_ward(cid)
     if link:
         lines.append(f"- доверенное лицо в семейном щите: {STATE.clients[link.guardian_id].short} ({link.guardian_title['ru']})")

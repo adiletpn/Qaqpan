@@ -172,6 +172,7 @@ class CheckResult(BaseModel):
     advice: str
     source: Literal["rules", "llm", "cache"]
     text: str | None = None  # recognised / analysed text (shown to the user)
+    tip: str | None = None   # an approved extra hint, e.g. «спросите кодовое слово семьи»
 
 
 Span = tuple[int, int]

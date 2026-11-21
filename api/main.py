@@ -16,17 +16,17 @@ import os
 import time
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import assistant, director, family, llm, msgcheck, schemes, victim
+from . import assistant, delay, director, family, llm, msgcheck, schemes, victim
 from .risk import assess
-from .schemas import (AnswersRequest, AssistantRequest, CallVerifyRequest, CallVerifyResult, CheckResult, ComplaintRequest,
-                      ComplaintResult, FamilyDecision, MessageCheckRequest, NativeCallSignal, Question,
-                      TransferRequest, TransferView, VictimHelp, VictimRequest)
-from .state import (BANK_NUMBER, FAMILY_TIMEOUT_S, NATIVE_NUMBER, SANDBOX_ID, STATE, Call, Client, FamilyLink, FamilyRequest,
-                    Transfer, digits, in_sandbox, sandbox, use_state)
+from .schemas import (AnswersRequest, AssistantRequest, CallVerifyRequest, CallVerifyResult, CheckResult, CodewordRequest,
+                      ComplaintRequest, ComplaintResult, FamilyDecision, MessageCheckRequest, NativeCallSignal, Question,
+                      RecipientCheck, TransferRequest, TransferView, VictimHelp, VictimRequest)
+from .state import (BANK_NUMBER, DELAY_S, FAMILY_TIMEOUT_S, NATIVE_NUMBER, SANDBOX_ID, STATE, Call, Client, FamilyLink,
+                    FamilyRequest, State, Transfer, current, digits, in_sandbox, sandbox, use_state)
 from .texts import QUESTIONS, reason_text, t
 
 logging.basicConfig(level=logging.INFO)
@@ -146,6 +146,10 @@ def _view(tr: Transfer) -> TransferView:
         parts = [t("scam.call", lang)] if said_yes else []
         parts.append(t("family.sent", lang, name=guardian))
         message = " ".join(parts)
+    elif tr.status == "delayed":
+        title, message = t("delay.title", lang), t("delay.msg", lang)
+    elif tr.status == "held" and tr.note == "delay_scam":
+        title, message = t("scam.title", lang), t("delay.held", lang) + " " + t("bank.callback", lang)
     elif tr.status in ("held", "escalated"):
         title = t("scam.title", lang) if said_yes or flagged else t("hold.title", lang)
         if said_yes:
@@ -167,7 +171,8 @@ def _view(tr: Transfer) -> TransferView:
         id=tr.id, status=tr.status, level=tr.level, score=tr.score, amount=tr.amount, account=acc.display,
         holder=acc.holder, title=title, message=message, questions=questions,
         reasons=[reason_text(r, lang, **tr.reason_kw) for r in tr.reasons if r != "KNOWN_RECIPIENT"],
-        guardian_name=guardian, balance=c.balance,
+        guardian_name=guardian, balance=c.balance, release_at=tr.release_at if tr.status == "delayed" else None,
+        analysis=delay.view(tr.analysis, lang),
     )
 
 
@@ -235,6 +240,7 @@ def phone(cid: str) -> dict:
     _idle_reset()
     with STATE.lock:
         STATE.expire_family()
+        STATE.release_delayed()
         call = STATE.calls.get(cid)
         requests = [family.request_view(fr, c.lang) for fr in STATE.family.values()
                     if fr.guardian_id == cid and fr.status == "pending"]
@@ -321,6 +327,8 @@ def check_message(req: MessageCheckRequest) -> CheckResult:
         raise HTTPException(422, "Нужен текст, ссылка или скриншот")
     cid = req.client_id if req.client_id in STATE.clients else None
     who = STATE.clients[cid].short if cid else "Клиент"
+    if res.scheme == "relative":  # «мама, это я, новый номер»: the family code word beats any analysis
+        res.tip = t("codeword.ask" if cid in STATE.codewords else "codeword.setup", req.lang)
     if res.verdict == "scam":
         names = msgcheck.SCHEME_NAME.get(res.scheme or "", {"ru": "схема", "kk": "схема"})
         STATE.alert(cid, f"Проверено сообщение — мошенничество ({names['ru']})",
@@ -456,6 +464,37 @@ def cancel_transfer(tid: str) -> TransferView:
         return _view(tr)
 
 
+def _analyse_later(st: State, tid: str, lang: str) -> None:
+    tr = st.transfers.get(tid)
+    if tr is None or tr.status != "delayed":
+        return
+    result = delay.analyse(st, tr, lang)
+    with st.lock:
+        tr.analysis = result
+        names = {"likely_scam": "похоже на обман", "unclear": "есть сомнения", "likely_ok": "явных признаков нет"}
+        st.emit("analysis", tr.client_id, f"Qaqpan за час: {names[result['verdict']]} — "
+                + ", ".join(c.lower() for c in result["codes"]), stopped=result["verdict"] == "likely_scam")
+
+
+@app.post("/api/transfers/{tid}/delay", response_model=TransferView)
+def delay_transfer(tid: str, background: BackgroundTasks) -> TransferView:
+    """«Отложить на час»: softer than a block — the money goes out by itself after an hour unless cancelled,
+    and Qaqpan analyses the whole session meanwhile."""
+    with STATE.lock:
+        tr = _transfer(tid)
+        if tr.status != "warning":
+            raise HTTPException(409, f"Перевод уже в статусе {tr.status}")
+        c = STATE.clients[tr.client_id]
+        tr.status, tr.release_at = "delayed", time.time() + DELAY_S
+        STATE.alert(c.id, f"Перевод {_fmt(tr.amount)} отложен на час", f"{_fmt(tr.amount)} аударым бір сағатқа қалдырылды")
+        STATE.emit("delay", c.id, f"{c.short}: перевод {_fmt(tr.amount)} отложен на час — Qaqpan анализирует сессию")
+        link = STATE.link_for_ward(c.id)
+        if link:
+            family.notify_delayed(c.id, tr)
+        background.add_task(_analyse_later, current(), tr.id, c.lang)
+        return _view(tr)
+
+
 @app.post("/api/transfers/{tid}/proceed", response_model=TransferView)
 def proceed_transfer(tid: str) -> TransferView:
     with STATE.lock:
@@ -515,6 +554,43 @@ def family_decision(rid: str, req: FamilyDecision) -> dict:
             STATE.emit("family_no", c.id, f"{g.short} отклонил(а) перевод {_fmt(tr.amount)} — деньги {c.short} спасены",
                        step="persuaded", stopped=True)
         return {"status": fr.status, "transfer": _view(tr).model_dump()}
+
+
+@app.post("/api/family/{cid}/codeword")
+def codeword(cid: str, req: CodewordRequest) -> dict:
+    """The family agreed on a code word. Qaqpan stores only the fact, never the word."""
+    _client(cid)
+    with STATE.lock:
+        family_ids = {cid} | {lk.guardian_id for lk in STATE.links.values() if lk.ward_id == cid} | \
+                     {lk.ward_id for lk in STATE.links.values() if lk.guardian_id == cid}
+        for x in family_ids:
+            (STATE.codewords.add if req.agreed else STATE.codewords.discard)(x)
+        if req.agreed:
+            STATE.emit("codeword", cid, f"{STATE.clients[cid].short}: семья договорилась о кодовом слове")
+    return {"agreed": req.agreed}
+
+
+@app.post("/api/recipients/check")
+def check_recipient(req: RecipientCheck) -> dict:
+    """«Проверить получателя» before paying: only «complaints / no complaints» — never anything about the owner."""
+    c = _client(req.client_id)
+    num = digits(req.account)
+    if not 12 <= len(num) <= 20:
+        raise HTTPException(422, "Проверьте номер счёта или карты")
+    with STATE.lock:
+        acc = STATE.accounts.get(num)  # do not create an account record just for a check
+        if acc and acc.owner_id == c.id:
+            status = "own"
+        elif acc and (acc.complaints or acc.in_afc):
+            status = "complaints"
+        elif acc and acc.signals:
+            status = "signals"
+        elif STATE.is_known(c.id, num):
+            status = "known"
+        else:
+            status = "clean"
+        STATE.emit("recipient_check", c.id, f"{c.short} проверил(а) получателя перед переводом: {status}")
+        return {"status": status, "message": t(f"rcpt.{status}", c.lang)}
 
 
 @app.post("/api/family/{ward_id}/disable")
@@ -620,6 +696,7 @@ def ask_assistant(req: AssistantRequest) -> assistant.AssistantReply:
 def stage(since: int = 0) -> dict:
     _idle_reset()
     with STATE.lock:
+        STATE.release_delayed()
         return {
             "steps": sorted(STATE.steps),
             "stopped": STATE.stopped,

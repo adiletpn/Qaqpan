@@ -12,7 +12,7 @@ from . import msgcheck
 from .state import BANK_NUMBER, SCAM_NUMBER, STATE, Call, Sms
 
 DEMO_ACCOUNT = "KZ86 8562 0000 0471 1934"
-ACTIONS = ("reset", "sms", "call", "end_call", "transfer_aigerim", "transfer_madina", "bank_calls_madina", "victim")
+ACTIONS = ("reset", "sms", "call", "end_call", "transfer_aigerim", "transfer_madina", "bank_calls_madina", "victim", "skip_hour")
 
 
 def run(action: str) -> None:
@@ -41,6 +41,12 @@ def run(action: str) -> None:
             STATE.bank_outbound["madina"] = Call(BANK_NUMBER, "BCC", now, is_bank=True,
                                                  employee="Асем Нурланова", department="отдел кредитования")
             STATE.emit("director", "madina", "Мадине звонит настоящий сотрудник банка (505)")
+        elif action == "skip_hour":  # «прошёл час»: delayed transfers come due right now
+            for tr in STATE.transfers.values():
+                if tr.status == "delayed":
+                    tr.release_at = now
+            STATE.release_delayed()
+            STATE.emit("director", None, "Прошёл час")
         elif action == "victim":
             STATE.nav["aigerim"] = {"screen": "victim", "seq": int(now * 1000)}
         else:

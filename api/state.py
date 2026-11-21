@@ -17,10 +17,11 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 Lang = Literal["ru", "kk"]
-TransferStatus = Literal["completed", "warning", "questions", "held", "awaiting_family", "cancelled", "escalated"]
+TransferStatus = Literal["completed", "warning", "questions", "held", "awaiting_family", "cancelled", "escalated", "delayed"]
 StepId = Literal["written", "called", "persuaded", "received"]
 
 FAMILY_TIMEOUT_S = 15 * 60
+DELAY_S = 60 * 60             # «Отложить на час»: scammers sell urgency, an hour usually breaks the script
 PRESSURE_WINDOW_S = 30 * 60   # «положите трубку и переведите сами» — the call still counts for 30 minutes
 SESSION_WINDOW_S = 24 * 3600  # recipients first paid within 24 h stay «new»; the shield limit counts 24 h of transfers
 SHIELD_DISABLE_DELAY_S = 24 * 3600
@@ -115,6 +116,8 @@ class Transfer:
     note: str = ""
     shield: bool = False    # the family shield applies (new recipient, session total >= the guardian limit)
     pressure: bool = False  # made during a call or within 30 min after it
+    release_at: float | None = None  # «Отложить на час»: when the delayed transfer goes out by itself
+    analysis: dict | None = None     # what Qaqpan concluded during the hour: verdict + approved reason codes
 
 
 @dataclass
@@ -212,6 +215,7 @@ class State:
             self.call_ended: dict[str, float] = {}  # when the client's last non-bank call ended
             self.first_paid: dict[tuple[str, str], float] = {}  # (client, account) -> first completed transfer
             self.saved_ids: set[str] = set()
+            self.codewords: set[str] = set()  # clients whose family agreed on a code word (the word itself is never stored)
             self.saved = 0.0  # ₸ in transfers Qaqpan stopped
             self.last_call_number: dict[str, str] = {}
             self.bank_outbound: dict[str, Call] = {}  # the bank's own call log: client_id -> active outbound call
@@ -299,6 +303,26 @@ class State:
             self.saved_ids.add(tr.id)
             self.saved += tr.amount
 
+    def release_delayed(self) -> None:
+        """A delayed transfer goes out after the hour — unless Qaqpan concluded it is a scam: then the bank checks it."""
+        now = time.time()
+        for tr in self.transfers.values():
+            if tr.status != "delayed" or tr.release_at is None or now < tr.release_at:
+                continue
+            c = self.clients[tr.client_id]
+            if (tr.analysis or {}).get("verdict") == "likely_scam":
+                tr.status, tr.note = "held", "delay_scam"
+                self.mark_saved(tr)
+                self.emit("held", c.id, f"Час прошёл: Qaqpan счёл перевод {tr.amount:,.0f} ₸ обманом — его проверит сотрудник банка"
+                          .replace(",", " "), step="persuaded", stopped=True)
+            elif tr.amount <= c.balance:
+                c.balance -= tr.amount
+                tr.status = "completed"
+                self.first_paid.setdefault((c.id, tr.account), now)
+                self.emit("transfer_done", c.id, f"{c.short}: отложенный перевод {tr.amount:,.0f} ₸ выполнен".replace(",", " "))
+            else:
+                tr.status, tr.note = "cancelled", "insufficient"
+
     def expire_family(self) -> None:
         now = time.time()
         for fr in self.family.values():
@@ -337,6 +361,11 @@ def sandbox(sid: str) -> State:
 
 def use_state(st: State | None) -> contextvars.Token:
     return _current.set(st)
+
+
+def current() -> State:
+    """The real state object behind STATE for this request (for work that continues after the response)."""
+    return _current.get() or _shared
 
 
 def in_sandbox() -> bool:
