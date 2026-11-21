@@ -2,6 +2,7 @@ import { BrowserRouter, Link, Navigate, Route, Routes, useParams } from 'react-r
 import BankApp from './phone/BankApp'
 import Director from './pages/Director'
 import Stage from './pages/Stage'
+import Try from './pages/Try'
 import { Icon } from './ui'
 
 // /phone/:id — the app full-screen on a real phone (open the link on any device, or add it to the home screen)
@@ -36,8 +37,8 @@ function Index() {
         </p>
 
         <div className="mt-8 flex flex-wrap gap-3">
-          <Link to="/stage" className="rounded-2xl bg-emerald-500 px-5 py-3 font-semibold text-white hover:bg-emerald-400">Посмотреть, как работает ›</Link>
-          <Link to="/phone/aigerim" className="rounded-2xl bg-white/10 px-5 py-3 font-semibold ring-1 ring-white/15 hover:bg-white/15">Приложение на телефоне</Link>
+          <Link to="/try" className="rounded-2xl bg-emerald-500 px-5 py-3 font-semibold text-white hover:bg-emerald-400">Попробовать самому · 2 минуты ›</Link>
+          <Link to="/stage" className="rounded-2xl bg-white/10 px-5 py-3 font-semibold ring-1 ring-white/15 hover:bg-white/15">Три телефона на одном экране</Link>
         </div>
 
         <div className="mt-12 grid gap-3 md:grid-cols-2">
@@ -76,6 +77,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Index />} />
+        <Route path="/try" element={<Try />} />
         <Route path="/stage" element={<Stage />} />
         <Route path="/director" element={<Director />} />
         <Route path="/phone/:id" element={<PhonePage />} />

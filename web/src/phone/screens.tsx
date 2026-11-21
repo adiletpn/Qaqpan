@@ -84,7 +84,7 @@ export function CheckScreen({ clientId, lang, initialSample, onBack }: { clientI
             </div>
           </>
         )}
-        <Button onClick={run} disabled={busy || (!text.trim() && !sample && !upload)}>
+        <Button tour="check-btn" onClick={run} disabled={busy || (!text.trim() && !sample && !upload)}>
           {busy ? <span className="flex items-center justify-center gap-2"><Spinner />{L('checking')}</span> : L('check')}
         </Button>
         {err && <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{err}</div>}
@@ -102,7 +102,7 @@ function Verdict({ res, lang }: { res: CheckResult; lang: Lang }) {
     safe: { bg: 'bg-emerald-600', ring: 'ring-emerald-200', icon: 'check', label: L('safe') },
   }[res.verdict]
   return (
-    <motion.div initial={{ opacity: 0, y: 16, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={SPRING}
+    <motion.div data-tour="verdict" initial={{ opacity: 0, y: 16, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={SPRING}
       className={`overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ${cfg.ring}`}>
       <div className={`flex items-center gap-3 p-4 text-white ${cfg.bg}`}>
         <Icon name={cfg.icon} className="h-7 w-7" />
@@ -184,7 +184,7 @@ export function TransferScreen({ clientId, lang, prefill, balance, onBack, onDon
           {prefill?.note && <div className="mt-2 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{prefill.note}</div>}
         </Card>
         {err && <div className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{err}</div>}
-        <Button onClick={submit} disabled={busy || account.replace(/\D/g, '').length < 6 || !amt}>
+        <Button tour="send" onClick={submit} disabled={busy || account.replace(/\D/g, '').length < 6 || !amt}>
           {busy ? <span className="flex items-center justify-center gap-2"><Spinner />…</span> : `${L('send')} ${amt ? money(amt) : ''}`}
         </Button>
         <div className="flex items-center justify-center gap-1.5 text-xs text-slate-400"><Icon name="shield" className="h-3.5 w-3.5" />{L('qaqpan_on')}</div>
@@ -249,7 +249,7 @@ export function ResultScreen({ clientId, lang, transfer: t, onUpdate, onHome, on
     <AnimatePresence mode="wait" initial={false}>
     <motion.div key={t.status} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.28, ease: EASE }} className="px-4 pb-8 pt-6">
-      <div className="text-center">
+      <div className="text-center" data-tour="result">
         <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ ...SPRING, delay: 0.05 }}
           className={`mx-auto grid h-20 w-20 place-items-center rounded-full text-white shadow-lg ${look.bg}`}>
           {t.status === 'awaiting_family' ? <span className="h-8 w-8 animate-spin rounded-full border-4 border-white/30 border-t-white" /> : <Icon name={look.icon} className="h-10 w-10" />}
@@ -262,7 +262,7 @@ export function ResultScreen({ clientId, lang, transfer: t, onUpdate, onHome, on
       {err && <div className="mt-4 rounded-xl bg-red-50 p-3 text-center text-sm text-red-700">{err}</div>}
 
       {t.status === 'questions' && (
-        <div className="mt-5 space-y-2">
+        <div className="mt-5 space-y-2" data-tour="questions">
           {t.questions.map((q, i) => (
             <motion.div key={q.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 + i * 0.07, duration: 0.3, ease: EASE }}>
             <Card className="!p-3">
@@ -278,7 +278,7 @@ export function ResultScreen({ clientId, lang, transfer: t, onUpdate, onHome, on
             </Card>
             </motion.div>
           ))}
-          <Button disabled={busy || answers.some(a => a === null)} onClick={() => act(() => api.answers(t.id, answers as boolean[]))}>{L('answer')}</Button>
+          <Button tour="answer" disabled={busy || answers.some(a => a === null)} onClick={() => act(() => api.answers(t.id, answers as boolean[]))}>{L('answer')}</Button>
           <Button tone="ghost" disabled={busy} onClick={() => act(() => api.cancel(t.id))}>{L('cancel')}</Button>
         </div>
       )}
@@ -301,7 +301,7 @@ export function ResultScreen({ clientId, lang, transfer: t, onUpdate, onHome, on
         <div className="mt-6 space-y-2">
           {complained
             ? <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={SPRING} className="rounded-2xl bg-emerald-50 p-3 text-center text-sm font-medium text-emerald-800 ring-1 ring-emerald-200">{complained}</motion.div>
-            : <Button tone="danger" disabled={busy} onClick={complain}>{L('complain')}</Button>}
+            : <Button tour="complain" tone="danger" disabled={busy} onClick={complain}>{L('complain')}</Button>}
           <Button tone="light" onClick={onHome}>{L('home')}</Button>
           <Button tone="ghost" onClick={onVictim}>{L('already_sent')}</Button>
         </div>

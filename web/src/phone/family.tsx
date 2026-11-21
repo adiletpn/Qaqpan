@@ -23,7 +23,7 @@ export function PushBanner({ notice, lang, onOpen, onClose }: { notice: Notice; 
           <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${urgent ? 'bg-red-500' : 'bg-teal-700'} text-white`}>
             <Icon name="shield" className="h-5 w-5" />
           </span>
-          <button onClick={onOpen} className="min-w-0 flex-1 text-left">
+          <button data-tour="push" onClick={onOpen} className="min-w-0 flex-1 text-left">
             <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide opacity-70">
               <span>{notice.title}</span><span>{tr(lang, 'now')}</span>
             </div>
@@ -49,14 +49,14 @@ export function FamilySheet({ req, clientId, lang, onDone, onClose }: { req: Fam
   }
   const minutes = Math.max(1, Math.ceil(req.expires_in / 60))
   return (
-    <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ duration: 0.38, ease: EASE }}
+    <motion.div data-tour="family-sheet" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ duration: 0.38, ease: EASE }}
       className="absolute inset-0 z-30 flex flex-col bg-slate-50 shadow-2xl">
       <div className="flex items-center justify-between bg-red-600 px-4 pb-3 pt-3 text-white">
         <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide"><Icon name="family" className="h-4 w-4" />{L('family_shield')}</div>
         <button onClick={onClose} className="opacity-80" aria-label={L('close')}><Icon name="x" className="h-5 w-5" /></button>
       </div>
       <div className="flex-1 space-y-3 overflow-y-auto px-4 pb-4 pt-4">
-        <h3 className="text-[22px] font-extrabold leading-tight text-slate-900">{req.headline}</h3>
+        <h3 data-tour="family-headline" className="text-[22px] font-extrabold leading-tight text-slate-900">{req.headline}</h3>
         <p className="text-[15px] leading-relaxed text-slate-700">{req.explanation}</p>
 
         <Card className="!p-3">
@@ -102,7 +102,7 @@ export function FamilySheet({ req, clientId, lang, onDone, onClose }: { req: Fam
           className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-[15px] font-semibold text-white active:bg-emerald-700">
           <Icon name="phone" />{L('call_back')} · {req.ward_title}
         </a>
-        <Button tone="danger" disabled={busy} onClick={() => decide(false)}>{L('decline_tr')}</Button>
+        <Button tour="decline" tone="danger" disabled={busy} onClick={() => decide(false)}>{L('decline_tr')}</Button>
       </div>
     </motion.div>
   )

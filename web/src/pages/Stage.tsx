@@ -95,8 +95,10 @@ export default function Stage() {
         <div>
           <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-emerald-500"><Icon name="shield" className="h-7 w-7" /></div>
           <h1 className="mt-4 text-2xl font-black">Сцена — для большого экрана</h1>
-          <p className="mt-2 text-sm text-slate-400">На телефоне откройте само приложение:</p>
-          <div className="mt-4 grid gap-2">
+          <p className="mt-2 text-sm text-slate-400">На телефоне удобнее пройти демо самому — за 2 минуты, с подсказками:</p>
+          <a href="/try" className="mt-4 block rounded-2xl bg-emerald-500 p-3 font-semibold">Попробовать самому ›</a>
+          <p className="mt-4 text-sm text-slate-400">Или откройте приложение одного из клиентов:</p>
+          <div className="mt-2 grid gap-2">
             {PHONES.map(p => <a key={p.id} href={`/phone/${p.id}`} className="rounded-2xl bg-white/5 p-3 ring-1 ring-white/10">{p.caption} · {p.role}</a>)}
           </div>
         </div>

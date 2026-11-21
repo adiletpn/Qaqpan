@@ -1,7 +1,7 @@
 PY := .venv/bin/python
 PIP := .venv/bin/pip
 
-.PHONY: setup samples eval demo dev api web test types e2e lint warm video
+.PHONY: setup samples eval demo dev api web test types e2e e2e-try lint warm video
 
 setup:          ## venv (Python 3.12) + deps + web deps
 	test -d .venv || python3.12 -m venv .venv
@@ -33,6 +33,10 @@ types:          ## OpenAPI -> web/src/api/types.ts
 
 e2e:            ## click through the whole demo in headless Chrome (server must run on :8000)
 	$(PY) scripts/e2e_stage.py http://localhost:8000 e2e_shots
+
+e2e-try:        ## browser run of the self-guided tour on /try, phone and laptop sizes (server on :8000)
+	$(PY) scripts/e2e_try.py http://localhost:8000 e2e_try mobile
+	$(PY) scripts/e2e_try.py http://localhost:8000 e2e_try desktop
 
 lint:
 	cd web && npx eslint src

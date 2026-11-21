@@ -79,13 +79,26 @@ function directorKey(): string | null {
   try { return localStorage.getItem(KEY_STORAGE) } catch { return null }
 }
 
+// Self-guided tour (/try): every visitor gets an own demo world on the server (X-Qaqpan-Session),
+// so two jurors trying the link at the same time never see each other's transfers.
+const SANDBOX = 'qaqpan.sandbox'
+let sandbox: string | null = null
+export function startSandbox(fresh = false): string {
+  try { sandbox = fresh ? null : sessionStorage.getItem(SANDBOX) } catch { /* storage may be unavailable */ }
+  if (!sandbox) {
+    sandbox = Array.from(crypto.getRandomValues(new Uint8Array(10)), b => (b % 36).toString(36)).join('')
+    try { sessionStorage.setItem(SANDBOX, sandbox) } catch { /* in-memory only */ }
+  }
+  return sandbox
+}
+
 async function req<T>(url: string, body?: unknown, headers: Record<string, string> = {}): Promise<T> {
   let r: Response
   const k = directorKey()  // a locked stand (QAQPAN_LOCK=1) accepts actions only from devices that know the key
+  const common = { ...(k ? { 'X-Director-Key': k } : {}), ...(sandbox ? { 'X-Qaqpan-Session': sandbox } : {}), ...headers }
   try {
-    r = await fetch(url, body === undefined ? undefined : {
-      method: 'POST', headers: { 'Content-Type': 'application/json', ...(k ? { 'X-Director-Key': k } : {}), ...headers },
-      body: JSON.stringify(body),
+    r = await fetch(url, body === undefined ? { headers: common } : {
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...common }, body: JSON.stringify(body),
     })
   } catch {
     throw new Error('Нет связи с сервером')

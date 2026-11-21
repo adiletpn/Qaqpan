@@ -34,11 +34,11 @@ const tones: Record<Tone, string> = {
   light: 'bg-white text-slate-800 border border-slate-200 active:bg-slate-50',
 }
 
-export function Button({ children, onClick, tone = 'primary', disabled, className = '' }: {
-  children: ReactNode; onClick?: () => void; tone?: Tone; disabled?: boolean; className?: string
+export function Button({ children, onClick, tone = 'primary', disabled, className = '', tour }: {
+  children: ReactNode; onClick?: () => void; tone?: Tone; disabled?: boolean; className?: string; tour?: string
 }) {
   return (
-    <button onClick={onClick} disabled={disabled}
+    <button onClick={onClick} disabled={disabled} data-tour={tour}
       className={`w-full rounded-2xl px-4 py-3.5 text-[15px] font-semibold transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 ${tones[tone]} ${className}`}>
       {children}
     </button>

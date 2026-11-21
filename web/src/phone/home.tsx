@@ -60,7 +60,7 @@ export function Home({ snap, lang, onNav, onVerify, onCheck, onToggleLang, onOpe
       </div>
 
       {pending && (
-        <button onClick={() => onOpenRequest(pending.id)} className="flex w-full items-center gap-3 rounded-2xl bg-red-600 p-3 text-left text-white shadow-lg">
+        <button data-tour="family-pending" onClick={() => onOpenRequest(pending.id)} className="flex w-full items-center gap-3 rounded-2xl bg-red-600 p-3 text-left text-white shadow-lg">
           <span className="relative grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/15">
             <Icon name="family" className="h-5 w-5" />
             <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 animate-ping rounded-full bg-white" />
@@ -123,7 +123,7 @@ export function Home({ snap, lang, onNav, onVerify, onCheck, onToggleLang, onOpe
           <h3 className="mb-2 text-sm font-semibold text-slate-500">{L('sms')}</h3>
           <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-100">
             {snap.sms.slice().reverse().map(s => (
-              <button key={s.id} onClick={() => onCheck(s.sample_id)} className="flex w-full gap-3 border-t border-slate-100 p-3 text-left first:border-0 active:bg-slate-50">
+              <button key={s.id} data-tour="sms" onClick={() => onCheck(s.sample_id)} className="flex w-full gap-3 border-t border-slate-100 p-3 text-left first:border-0 active:bg-slate-50">
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-500 text-white"><Icon name="msg" className="h-4 w-4" /></span>
                 <span className="min-w-0">
                   <span className="block text-sm font-semibold">{s.sender}</span>

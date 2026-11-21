@@ -34,7 +34,7 @@ export function IncomingCall({ call, lang, onAccept, onDecline }: { call: Call; 
           <span className="grid h-16 w-16 place-items-center rounded-full bg-red-500"><Icon name="x" className="h-7 w-7" /></span>
           <span className="text-sm">{tr(lang, 'decline')}</span>
         </motion.button>
-        <motion.button whileTap={{ scale: 0.9 }} onClick={onAccept} className="flex flex-col items-center gap-2">
+        <motion.button data-tour="call-accept" whileTap={{ scale: 0.9 }} onClick={onAccept} className="flex flex-col items-center gap-2">
           <motion.span animate={{ y: [0, -4, 0] }} transition={{ duration: 1, repeat: Infinity }}
             className="grid h-16 w-16 place-items-center rounded-full bg-emerald-500"><Icon name="phone" className="h-7 w-7" /></motion.span>
           <span className="text-sm">{tr(lang, 'accept')}</span>
@@ -56,7 +56,7 @@ export function CallPill({ call, lang, onVerify, onEnd }: { call: Call; lang: La
           <span className="truncate opacity-80">{call.label}</span>
           <motion.button whileTap={{ scale: 0.85 }} onClick={onEnd} className="ml-auto rounded-full bg-red-500 p-1.5" aria-label={tr(lang, 'end_call')}><Icon name="x" className="h-3.5 w-3.5" /></motion.button>
         </div>
-        <motion.button whileTap={{ scale: 0.97 }} onClick={onVerify} className="flex w-full items-center justify-center gap-2 rounded-xl bg-white py-2 text-sm font-bold text-emerald-700">
+        <motion.button data-tour="verify" whileTap={{ scale: 0.97 }} onClick={onVerify} className="flex w-full items-center justify-center gap-2 rounded-xl bg-white py-2 text-sm font-bold text-emerald-700">
           <Icon name="shield" className="h-4 w-4" />{tr(lang, 'bank_calling')}
         </motion.button>
       </div>
@@ -107,11 +107,13 @@ export function VerifySheet({ result, lang, onClose }: { result: CallVerify; lan
   useEffect(() => { if (result.status === 'not_bank') buzz([80, 60, 80]) }, [result.status])
   return (
     <Sheet onClose={onClose}>
+      <div data-tour="verify-sheet">
       <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ ...SPRING, delay: 0.1 }}
         className={`mx-auto grid h-16 w-16 place-items-center rounded-full text-white ${tone}`}><Icon name={icon} className="h-8 w-8" /></motion.div>
       <h3 className="mt-4 text-center text-xl font-bold">{result.title}</h3>
       <p className="mt-2 text-center text-sm text-slate-600">{result.message}</p>
-      <Button className="mt-5" tone={result.status === 'not_bank' ? 'danger' : 'primary'} onClick={onClose}>{tr(lang, 'done')}</Button>
+      </div>
+      <Button tour="verify-done" className="mt-5" tone={result.status === 'not_bank' ? 'danger' : 'primary'} onClick={onClose}>{tr(lang, 'done')}</Button>
     </Sheet>
   )
 }
