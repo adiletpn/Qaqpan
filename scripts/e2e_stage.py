@@ -62,13 +62,17 @@ try:
                                                       headers={"X-Director-Key": key} if key else {}))
         time.sleep(1.3)
 
-    def click(phone: int, text: str, exact=False):
+    def click(phone: int, text: str, exact=False, deadline=None):
+        deadline = deadline or time.time() + 10
         ok = js(f"""(() => {{
           const root = document.querySelectorAll('main > div')[{phone}];
           const els = [...root.querySelectorAll('button')].filter(b => !b.disabled);
           const t = {json.dumps(text)};
           const el = els.find(b => {'b.textContent.trim() === t' if exact else 'b.textContent.includes(t)'});
           if (!el) return false; el.click(); return true; }})()""")
+        if not ok and time.time() < deadline:  # a public deployment may answer in 1–3 s: wait for the button
+            time.sleep(0.4)
+            return click(phone, text, exact, deadline)
         if not ok:
             shot(f"FAIL_{text[:20]}")
             raise SystemExit(f"button not found on phone {phone}: {text!r}")
@@ -83,7 +87,7 @@ try:
     cdp("Runtime.enable")
     director("reset")
     cdp("Page.navigate", url=f"{BASE}/stage")
-    time.sleep(2.5)
+    time.sleep(2.5 if "localhost" in BASE else 6)  # phones must be on screen before the SMS arrives
 
     # 1 «Написали»
     director("sms")
@@ -122,6 +126,7 @@ try:
     # 4 «Получили»: complaint protects Madina
     click(0, "Алаяқтар туралы хабарлау")
     director("transfer_madina")
+    time.sleep(2)  # a public deployment: the phone picks the command up on its next poll
     click(2, "Перевести 150")
     time.sleep(2.0)
     shot("06_madina_protected")
