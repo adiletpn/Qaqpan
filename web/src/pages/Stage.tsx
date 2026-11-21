@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { money } from '../api'
 import BankApp from '../phone/BankApp'
 import { Icon } from '../ui'
 import { ACTIONS, STEPS, useDirectorHotkeys, useStage } from './shared'
@@ -77,7 +78,7 @@ export default function Stage() {
   useEffect(() => { if (!warn) return; const t = setTimeout(() => setWarn(null), 4000); return () => clearTimeout(t) }, [warn])
   const [help, setHelp] = useState(false)
   useEffect(() => {
-    const h = (e: KeyboardEvent) => { if (e.key === '?' || e.key.toLowerCase() === 'h') setHelp(v => !v) }
+    const h = (e: KeyboardEvent) => { if (e.key === '?' || e.code === 'KeyH') setHelp(v => !v) }
     window.addEventListener('keydown', h)
     return () => window.removeEventListener('keydown', h)
   }, [])
@@ -108,8 +109,8 @@ export default function Stage() {
         </div>
         <StepsBar fired={stage?.steps ?? []} compact={compact} />
         <div className="shrink-0 text-right">
-          <div className="text-4xl font-black tabular-nums text-emerald-400">{stage?.stopped ?? 0}</div>
-          <div className="text-xs text-slate-400">попыток остановлено</div>
+          <div className="text-4xl font-black tabular-nums text-emerald-400">{money(stage?.saved ?? 0)}</div>
+          <div className="text-xs text-slate-400">спасено · остановлено попыток: {stage?.stopped ?? 0}</div>
         </div>
       </header>
 
@@ -140,10 +141,10 @@ export default function Stage() {
         </div>
       )}
 
-      <footer className="mt-2 flex h-[64px] shrink-0 flex-col-reverse justify-start gap-0.5 overflow-hidden text-sm">
+      <footer className="mt-2 flex h-[84px] shrink-0 flex-col-reverse justify-start gap-0.5 overflow-hidden text-lg">
         {events.map((e, i) => (
           <div key={e.seq} className={`flex min-w-0 items-center gap-2 transition-opacity ${i === 0 ? 'text-white' : 'text-slate-500'}`}>
-            <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${e.stopped ? 'bg-emerald-400' : 'bg-slate-500'}`} /><span className="truncate">{e.text}</span>
+            <span className={`h-2 w-2 shrink-0 rounded-full ${e.stopped ? 'bg-emerald-400' : 'bg-slate-500'}`} /><span className="truncate">{e.text}</span>
           </div>
         ))}
       </footer>

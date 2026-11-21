@@ -3,7 +3,7 @@ import type { Lang } from './api'
 // App chrome only. Client-facing safety texts come from the API (approved templates).
 // Kazakh strings: proofread by a native speaker before the final.
 const S = {
-  hello: ['Привет', 'Сәлем'],
+  hello: ['Здравствуйте', 'Сәлеметсіз бе'],
   balance: ['Основной счёт', 'Негізгі шот'],
   transfer: ['Перевод', 'Аударым'],
   qaqpan_on: ['Qaqpan защищает вас', 'Qaqpan сізді қорғайды'],
@@ -53,7 +53,7 @@ const S = {
   decline_tr: ['Отклонить перевод', 'Аударымды қабылдамау'],
   call_back: ['Позвонить', 'Қоңырау шалу'],
   why: ['Почему Qaqpan насторожился', 'Qaqpan неге сақтанды'],
-  min_left: ['мин до звонка сотрудника банка', 'мин кейін банк қызметкері хабарласады'],
+  min_left: ['мин, потом перевод проверит банк', 'минуттан кейін аударымды банк тексереді'],
   said_yes: ['Подтвердила признаки давления', 'Қысым белгілерін растады'],
   sms: ['Сообщения', 'Хабарламалар'],
   tap_to_check: ['Нажмите, чтобы проверить', 'Тексеру үшін басыңыз'],

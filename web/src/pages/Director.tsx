@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { api } from '../api'
+import { api, money } from '../api'
 import { StepsBar } from './Stage'
 import { ACTIONS, useDirectorHotkeys, useStage } from './shared'
 
@@ -17,7 +17,7 @@ export default function Director() {
       <div className="mx-auto max-w-5xl">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-black">Пульт демо</h1>
-          <div className="text-right"><span className="text-3xl font-black text-emerald-400">{stage?.stopped ?? 0}</span> <span className="text-sm text-slate-400">остановлено</span></div>
+          <div className="text-right"><span className="text-3xl font-black text-emerald-400">{money(stage?.saved ?? 0)}</span> <span className="text-sm text-slate-400">спасено · попыток: {stage?.stopped ?? 0}</span></div>
         </div>
         {(offline || err) && (
           <div className="mt-3 rounded-xl bg-amber-500/20 px-4 py-2 text-sm text-amber-200 ring-1 ring-amber-500/40">

@@ -65,7 +65,7 @@ export interface Sample { id: string; sender: string; text: string; label: Recor
 export interface SchemeCard { id: string; date: string; title: string; how: string; sign: string; source: string }
 export interface VictimHelp { steps: string[]; statement: { title: string; body: string }; source: string }
 export interface StageEvent { seq: number; ts: number; kind: string; client_id: string | null; text: string; step: string | null; stopped: boolean }
-export interface Stage { steps: string[]; stopped: number; events: StageEvent[] }
+export interface Stage { steps: string[]; stopped: number; saved: number; events: StageEvent[] }
 
 // Presenter key for a public deployment: open /stage?key=... once, it is remembered on this device.
 const KEY_STORAGE = 'qaqpan.directorKey'
@@ -108,7 +108,8 @@ export const api = {
   answers: (id: string, answers: boolean[]) => req<TransferView>(`/api/transfers/${id}/answers`, { answers }),
   cancel: (id: string) => req<TransferView>(`/api/transfers/${id}/cancel`, {}),
   proceed: (id: string) => req<TransferView>(`/api/transfers/${id}/proceed`, {}),
-  family: (rid: string, approve: boolean) => req<{ status: string }>(`/api/family/requests/${rid}/decision`, { approve }),
+  family: (rid: string, client_id: string, approve: boolean) =>
+    req<{ status: string }>(`/api/family/requests/${rid}/decision`, { client_id, approve }),
   shieldDisable: (wardId: string) => req<{ disable_at: number }>(`/api/family/${wardId}/disable`, {}),
   shieldKeep: (wardId: string) => req<{ disable_at: null }>(`/api/family/${wardId}/keep`, {}),
   noticeSeen: (id: string, nid: string) => req(`/api/phone/${id}/notices/${nid}/seen`, {}),

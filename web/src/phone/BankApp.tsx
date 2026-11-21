@@ -158,7 +158,7 @@ export default function BankApp({ clientId }: { clientId: string }) {
             onClose={() => { api.noticeSeen(clientId, notice.id).then(refresh).catch(() => undefined) }} />
         )}
         {verify && <VerifySheet key="verify" result={verify} lang={lang} onClose={() => setVerify(null)} />}
-        {request && <FamilySheet key={`req-${request.id}`} req={request} lang={lang} onClose={() => setOpenRequest(null)}
+        {request && <FamilySheet key={`req-${request.id}`} req={request} clientId={clientId} lang={lang} onClose={() => setOpenRequest(null)}
           onDone={() => { setOpenRequest(null); refresh() }} />}
         {ringing && snap.call && (
           <IncomingCall key="incoming" call={snap.call} lang={lang} onAccept={() => api.answerCall(clientId).then(refresh).catch(() => undefined)}

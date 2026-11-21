@@ -40,7 +40,8 @@ export function useDirectorHotkeys(onError?: (msg: string) => void) {
     const h = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement
       if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') || e.metaKey || e.ctrlKey || e.altKey) return
-      const a = ACTIONS.find(x => x.key.toLowerCase() === e.key.toLowerCase())
+      // e.code is the physical key: R resets the demo in the Russian layout too (e.key would be «к»)
+      const a = ACTIONS.find(x => e.code === (/^\d$/.test(x.key) ? `Digit${x.key}` : `Key${x.key}`) || e.code === `Numpad${x.key}`)
       if (a) {
         e.preventDefault()
         api.director(a.action).catch(err => onError?.(err instanceof Error ? err.message : 'Ошибка'))

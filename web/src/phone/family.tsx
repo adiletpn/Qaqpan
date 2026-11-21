@@ -38,14 +38,14 @@ export function PushBanner({ notice, lang, onOpen, onClose }: { notice: Notice; 
 
 // ------------------------------------------------------------------ the guardian's decision screen
 
-export function FamilySheet({ req, lang, onDone, onClose }: { req: FamilyRequest; lang: Lang; onDone: () => void; onClose: () => void }) {
+export function FamilySheet({ req, clientId, lang, onDone, onClose }: { req: FamilyRequest; clientId: string; lang: Lang; onDone: () => void; onClose: () => void }) {
   const L = (k: K) => tr(lang, k)
   const [busy, setBusy] = useState(false)
   const [confirmAllow, setConfirmAllow] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const decide = async (approve: boolean) => {
     setBusy(true); setErr(null)
-    try { await api.family(req.id, approve); onDone() } catch (e) { setErr(e instanceof Error ? e.message : L('error')) } finally { setBusy(false) }
+    try { await api.family(req.id, clientId, approve); onDone() } catch (e) { setErr(e instanceof Error ? e.message : L('error')) } finally { setBusy(false) }
   }
   const minutes = Math.max(1, Math.ceil(req.expires_in / 60))
   return (
@@ -110,26 +110,40 @@ export function FamilySheet({ req, lang, onDone, onClose }: { req: FamilyRequest
 
 // ------------------------------------------------------------------ shield settings / explainer
 
+// Consent: what the guardian sees and never sees (shown before and after connecting the shield)
+const CONSENT: Record<Lang, { sees: string[]; never: string[] }> = {
+  ru: {
+    sees: ['сумму и получателя только остановленного перевода', 'что идёт звонок — без номера и разговора',
+      'вердикт проверенных вами сообщений'],
+    never: ['ваш баланс и другие операции', 'содержание звонков и переписки', 'ваш пароль и коды'],
+  },
+  kk: {
+    sees: ['тек тоқтатылған аударымның сомасы мен алушысы', 'қоңырау жүріп жатқаны — нөмірсіз және әңгімесіз',
+      'сіз тексерген хабарламалардың қорытындысы'],
+    never: ['балансыңыз бен басқа операциялар', 'қоңыраулар мен хат алмасудың мазмұны', 'құпиясөз бен кодтар'],
+  },
+}
+
 const EXPLAIN: Record<'ward' | 'guardian' | 'none', Record<Lang, string[]>> = {
   ward: {
     ru: ['Обычные переводы и покупки проходят как раньше.',
       'Если крупный перевод похож на обман, он ждёт ответа вашего близкого. Без его ответа деньги не уйдут.',
-      'Если близкий не ответит за 15 минут, вам позвонит сотрудник банка.',
+      'Если близкий не ответит за 15 минут, перевод проверит сотрудник банка. Сам он не уйдёт.',
       'Отключить щит можно, но только через 24 часа — так мошенник не сможет уговорить вас сделать это по телефону.'],
     kk: ['Кәдімгі аударымдар мен сатып алулар бұрынғыдай өтеді.',
       'Егер үлкен аударым алдауға ұқсаса, ол жақын адамыңыздың жауабын күтеді. Оның жауабынсыз ақша кетпейді.',
-      'Жақын адамыңыз 15 минут ішінде жауап бермесе, сізге банк қызметкері хабарласады.',
+      'Жақын адамыңыз 15 минут ішінде жауап бермесе, аударымды банк қызметкері тексереді. Ол өздігінен кетпейді.',
       'Қалқанды өшіруге болады, бірақ тек 24 сағаттан кейін — алаяқ сізді телефонмен көндіре алмайды.'],
   },
   guardian: {
     ru: ['Вы получите уведомление только при крупном подозрительном переводе — обычные покупки вас не касаются.',
       'В уведомлении — что происходит простыми словами и что Qaqpan видел сегодня.',
       'Сначала позвоните близкому на его обычный номер. Потом решите: отклонить или разрешить.',
-      'Если не ответите за 15 минут, перевод не уйдёт сам — позвонит сотрудник банка.'],
+      'Если не ответите за 15 минут, перевод не уйдёт сам — его проверит сотрудник банка.'],
     kk: ['Хабарлама тек үлкен күдікті аударым кезінде келеді — кәдімгі сатып алулар сізге қатысты емес.',
       'Хабарламада не болып жатқаны қарапайым тілмен және Qaqpan бүгін не көргені жазылады.',
       'Алдымен жақын адамыңызға әдеттегі нөміріне қоңырау шалыңыз. Содан кейін шешіңіз: қабылдамау немесе рұқсат беру.',
-      '15 минут ішінде жауап бермесеңіз, аударым өздігінен кетпейді — банк қызметкері хабарласады.'],
+      '15 минут ішінде жауап бермесеңіз, аударым өздігінен кетпейді — оны банк қызметкері тексереді.'],
   },
   none: {
     ru: ['Выберите близкого человека — сына, дочь, брата.',
@@ -185,6 +199,19 @@ export function FamilyScreen({ clientId, lang, shield, onBack, onChanged }: { cl
         {shield.role === 'none' && (
           <Card>
             <div className="text-lg font-bold">{L('connect_close')}</div>
+          </Card>
+        )}
+
+        {shield.role !== 'guardian' && (
+          <Card>
+            <div className="mb-2 text-sm font-semibold text-slate-500">{lang === 'kk' ? 'Жақын адамыңыз не көреді' : 'Что увидит ваш близкий'}</div>
+            <ul className="space-y-1.5 text-sm text-slate-700">
+              {CONSENT[lang].sees.map(x => <li key={x} className="flex gap-2"><span className="text-emerald-600">✓</span>{x}</li>)}
+            </ul>
+            <div className="mb-2 mt-3 text-sm font-semibold text-slate-500">{lang === 'kk' ? 'Ешқашан көрмейді' : 'Никогда не увидит'}</div>
+            <ul className="space-y-1.5 text-sm text-slate-700">
+              {CONSENT[lang].never.map(x => <li key={x} className="flex gap-2"><span className="text-slate-400">✕</span>{x}</li>)}
+            </ul>
           </Card>
         )}
 
