@@ -3,6 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { Link } from 'react-router-dom'
 import { api, money, startSandbox } from '../api'
 import BankApp from '../phone/BankApp'
+import { BankConsole } from './BankConsole'
 import { Device, DEVICE_H } from '../phone/Device'
 import Starfield from '../Starfield'
 import { Icon } from '../ui'
@@ -12,11 +13,13 @@ import { useStage } from './shared'
 // three phones kept alive (switching profiles keeps each screen), and a guided tour that highlights the next
 // button. Tap the highlighted button yourself or press «Далее» — the tour does it for you.
 
-type Profile = 'aigerim' | 'erzhan' | 'madina'
+type Profile = 'aigerim' | 'erzhan' | 'madina' | 'bank'
+const PHONES = ['aigerim', 'erzhan', 'madina'] as const
 const PROFILES: { id: Profile; name: string; role: string }[] = [
   { id: 'aigerim', name: 'Айгерим, 52', role: 'клиентка' },
   { id: 'erzhan', name: 'Ержан, 27', role: 'её сын' },
   { id: 'madina', name: 'Мадина, 34', role: 'другая клиентка' },
+  { id: 'bank', name: 'Банк', role: 'антифрод' },
 ]
 
 type Step = {
@@ -84,7 +87,11 @@ const STEPS: Step[] = [
   { profile: 'madina', target: 'result', title: '«На этот счёт поступали жалобы»',
     text: 'Мадину остановили до потери денег: одна остановленная попытка защитила другого клиента. Банковская тайна соблюдена — о получателе ни слова, кроме жалоб.',
     next: root => answer(root, [true, true, false]) },
-  { profile: 'madina', title: 'Это весь путь: 1 050 000 ₸ спасено',
+  { profile: 'bank', target: 'drop-card', title: 'Взгляд банка: найден дроп',
+    text: 'Это рабочее место аналитика антифрода. Счёт «Данияра» — вероятный дроп: за сутки на него пытались перевести два разных клиента, есть подтверждённая жалоба, счёт новый. Клиенту об этом не говорят — банковская тайна.' },
+  { profile: 'bank', target: 'bank-note', title: 'ИИ пишет сводку аналитику',
+    text: 'По каждой остановленной операции — что произошло в сессии и на какую схему похоже, плюс «в N раз больше обычных трат». Qaqpan дополняет антифрод банка: решение «Заблокировать / Разрешить» остаётся за сотрудником.' },
+  { profile: 'bank', title: 'Это весь путь: 1 050 000 ₸ спасено',
     text: 'Попробуйте сами: «Спросить Qaqpan» — ИИ-помощник, который видит ситуацию клиента; «Семейный щит» у Айгерим нельзя отключить быстрее чем за 24 часа; «Проверить сообщение» — вставьте своё SMS или скриншот.',
     cta: 'Свободный режим' },
 ]
@@ -121,7 +128,7 @@ export default function Try() {
   const [rect, setRect] = useState<Box | null>(null)
   const [busy, setBusy] = useState(false)
   const [epoch, setEpoch] = useState(0)
-  const roots = useRef<Record<Profile, HTMLDivElement | null>>({ aigerim: null, erzhan: null, madina: null })
+  const roots = useRef<Record<Profile, HTMLDivElement | null>>({ aigerim: null, erzhan: null, madina: null, bank: null })
   const { stage } = useStage(1500)
   const vp = useViewport()
   const desktop = vp.w >= 900
@@ -240,18 +247,25 @@ export default function Try() {
 
       <main className="relative z-10 flex min-h-0 flex-1 items-center justify-center md:pb-4">
         {desktop ? (
-          <Device scale={scale}>
-            {PROFILES.map(p => (
-              <div key={`${p.id}-${epoch}`} ref={el => { roots.current[p.id] = el }} className={profile === p.id ? 'h-full' : 'hidden'}>
-                {ready && <BankApp clientId={p.id} />}
-              </div>
-            ))}
-          </Device>
-        ) : PROFILES.map(p => (
-          <div key={`${p.id}-${epoch}`} ref={el => { roots.current[p.id] = el }} className={profile === p.id ? 'h-full w-full bg-slate-50' : 'hidden'}>
-            {ready && <BankApp clientId={p.id} />}
+          <div className={profile === 'bank' ? 'hidden' : ''}>
+            <Device scale={scale}>
+              {PHONES.map(id => (
+                <div key={`${id}-${epoch}`} ref={el => { roots.current[id] = el }} className={profile === id ? 'h-full' : 'hidden'}>
+                  {ready && <BankApp clientId={id} />}
+                </div>
+              ))}
+            </Device>
+          </div>
+        ) : PHONES.map(id => (
+          <div key={`${id}-${epoch}`} ref={el => { roots.current[id] = el }} className={profile === id ? 'h-full w-full bg-slate-50' : 'hidden'}>
+            {ready && <BankApp clientId={id} />}
           </div>
         ))}
+        {/* the bank's side: the analyst console in the visitor's own sandbox */}
+        <div key={`bank-${epoch}`} ref={el => { roots.current.bank = el }}
+          className={profile === 'bank' ? (desktop ? 'h-full w-full max-w-5xl overflow-hidden rounded-3xl shadow-2xl ring-1 ring-white/10' : 'h-full w-full') : 'hidden'}>
+          {ready && <BankConsole compact={!desktop} />}
+        </div>
       </main>
 
       <AnimatePresence>

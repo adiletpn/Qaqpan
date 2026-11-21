@@ -31,6 +31,15 @@ export interface TransferView {
   analysis?: DelayAnalysis | null
 }
 export interface DelayAnalysis { verdict: 'likely_scam' | 'unclear' | 'likely_ok'; title: string; advice: string; reasons: string[]; source: string }
+export interface DropProfile { account: string; display: string; holder: string; bank: string; score: number; label: 'drop' | 'watch' | 'ok'; signals: string[]; senders: number; inflow: number; attempts: number }
+export interface BankItem {
+  id: string; ts: number; status: TransferView['status']; score: number; amount: number
+  client: { id: string; name: string; age: number; city: string }
+  recipient: { display: string; holder: string; bank: string }
+  reasons: string[]; unusual_x: number | null; drop: DropProfile; family: string | null; delay: string | null; release_at: number | null
+  timeline: { ts: number; text: string }[]; note: { text: string; source: string }; decided_by_bank: string | null
+}
+export interface BankConsoleData { stats: { saved: number; stopped: number; queue: number; drops: number; checked: number }; queue: BankItem[]; history: BankItem[]; drops: DropProfile[] }
 export interface RecipientCheck { status: 'complaints' | 'signals' | 'known' | 'own' | 'clean'; message: string }
 export interface FamilyRequest {
   id: string
@@ -130,6 +139,8 @@ export const api = {
   proceed: (id: string) => req<TransferView>(`/api/transfers/${id}/proceed`, {}),
   delay: (id: string) => req<TransferView>(`/api/transfers/${id}/delay`, {}),
   checkRecipient: (client_id: string, account: string) => req<RecipientCheck>('/api/recipients/check', { client_id, account }),
+  bankConsole: () => req<BankConsoleData>('/api/bank/console'),
+  bankDecision: (id: string, action: 'release' | 'block') => req<{ status: string }>(`/api/bank/transfers/${id}/decision`, { action }),
   codeword: (client_id: string, agreed: boolean) => req<{ agreed: boolean }>(`/api/family/${client_id}/codeword`, { agreed }),
   family: (rid: string, client_id: string, approve: boolean) =>
     req<{ status: string }>(`/api/family/requests/${rid}/decision`, { client_id, approve }),

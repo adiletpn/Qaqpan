@@ -3,6 +3,7 @@ import BankApp from './phone/BankApp'
 import Director from './pages/Director'
 import Stage from './pages/Stage'
 import Try from './pages/Try'
+import BankPage from './pages/BankConsole'
 import { Icon } from './ui'
 
 // /phone/:id — the app full-screen on a real phone (open the link on any device, or add it to the home screen)
@@ -39,6 +40,7 @@ function Index() {
         <div className="mt-8 flex flex-wrap gap-3">
           <Link to="/try" className="rounded-2xl bg-emerald-500 px-5 py-3 font-semibold text-white hover:bg-emerald-400">Попробовать самому · 2 минуты ›</Link>
           <Link to="/stage" className="rounded-2xl bg-white/10 px-5 py-3 font-semibold ring-1 ring-white/15 hover:bg-white/15">Три телефона на одном экране</Link>
+          <Link to="/bank" className="rounded-2xl bg-white/10 px-5 py-3 font-semibold ring-1 ring-white/15 hover:bg-white/15">Экран антифрода банка</Link>
         </div>
 
         <div className="mt-12 grid gap-3 md:grid-cols-2">
@@ -79,6 +81,7 @@ export default function App() {
         <Route path="/" element={<Index />} />
         <Route path="/try" element={<Try />} />
         <Route path="/stage" element={<Stage />} />
+        <Route path="/bank" element={<BankPage />} />
         <Route path="/director" element={<Director />} />
         <Route path="/phone/:id" element={<PhonePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

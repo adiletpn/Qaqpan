@@ -86,7 +86,7 @@ try:
     print(" · ".join(titles))
     print("sandbox saved:", mine["saved"], "steps fired:", mine["steps"])
     print("shared stage saved:", shared["saved"])
-    ok = mine["saved"] == 1_050_000 and len(titles) == 17
+    ok = mine["saved"] == 1_050_000 and len(titles) == 19
     print("OK" if ok else "FAIL")
     sys.exit(0 if ok else 1)
 finally:
