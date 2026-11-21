@@ -10,11 +10,12 @@ export interface CheckResult {
   advice: string
   source: 'rules' | 'llm' | 'cache'
   text: string | null
+  tip?: string | null
 }
 export interface Question { id: number; text: string }
 export interface TransferView {
   id: string
-  status: 'completed' | 'warning' | 'questions' | 'held' | 'awaiting_family' | 'cancelled' | 'escalated'
+  status: 'completed' | 'warning' | 'questions' | 'held' | 'awaiting_family' | 'cancelled' | 'escalated' | 'delayed'
   level: number
   score: number
   amount: number
@@ -26,7 +27,11 @@ export interface TransferView {
   reasons: string[]
   guardian_name: string | null
   balance: number
+  release_at?: number | null
+  analysis?: DelayAnalysis | null
 }
+export interface DelayAnalysis { verdict: 'likely_scam' | 'unclear' | 'likely_ok'; title: string; advice: string; reasons: string[]; source: string }
+export interface RecipientCheck { status: 'complaints' | 'signals' | 'known' | 'own' | 'clean'; message: string }
 export interface FamilyRequest {
   id: string
   ward_name: string
@@ -43,9 +48,9 @@ export interface FamilyRequest {
 }
 export interface Notice { id: string; ts: number; kind: 'family_request' | 'shield_disable' | 'info'; title: string; body: string; ref: string | null }
 export type Shield =
-  | { role: 'ward'; guardian_name: string; guardian_title: string; limit: number; active: boolean; disable_at: number | null }
-  | { role: 'guardian'; wards: { ward_id: string; name: string; title: string; limit: number; active: boolean; disable_at: number | null }[] }
-  | { role: 'none' }
+  | { role: 'ward'; guardian_name: string; guardian_title: string; limit: number; active: boolean; disable_at: number | null; codeword?: boolean }
+  | { role: 'guardian'; wards: { ward_id: string; name: string; title: string; limit: number; active: boolean; disable_at: number | null }[]; codeword?: boolean }
+  | { role: 'none'; codeword?: boolean }
 export interface Sms { id: string; sender: string; text: string; sample_id: string | null; ts: number }
 export interface Snapshot {
   epoch: number
@@ -123,6 +128,9 @@ export const api = {
   answers: (id: string, answers: boolean[]) => req<TransferView>(`/api/transfers/${id}/answers`, { answers }),
   cancel: (id: string) => req<TransferView>(`/api/transfers/${id}/cancel`, {}),
   proceed: (id: string) => req<TransferView>(`/api/transfers/${id}/proceed`, {}),
+  delay: (id: string) => req<TransferView>(`/api/transfers/${id}/delay`, {}),
+  checkRecipient: (client_id: string, account: string) => req<RecipientCheck>('/api/recipients/check', { client_id, account }),
+  codeword: (client_id: string, agreed: boolean) => req<{ agreed: boolean }>(`/api/family/${client_id}/codeword`, { agreed }),
   family: (rid: string, client_id: string, approve: boolean) =>
     req<{ status: string }>(`/api/family/requests/${rid}/decision`, { client_id, approve }),
   shieldDisable: (wardId: string) => req<{ disable_at: number }>(`/api/family/${wardId}/disable`, {}),

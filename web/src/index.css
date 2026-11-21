@@ -50,3 +50,6 @@ input, textarea { font-size: 16px; } /* no zoom-on-focus in iOS Safari */
 .qq-mark-on { box-shadow: 0 0 0 2px rgba(245,158,11,.9); }
 @keyframes qq-draw { to { background-size: 100% 100% } }
 @media (prefers-reduced-motion: reduce) { .qq-mark { animation: none; background-size: 100% 100%; } }
+
+/* «Крупный текст» (theme.ts): scale the whole phone UI; the box is shrunk by the same factor so it still fits */
+.qq-large { transform: scale(1.15); transform-origin: 0 0; width: calc(100% / 1.15) !important; height: calc(100% / 1.15) !important; }

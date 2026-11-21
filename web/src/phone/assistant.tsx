@@ -6,6 +6,7 @@ import { buzz, EASE, SPRING } from '../motion'
 import { Header, Icon } from '../ui'
 import { Thinking } from './Thinking'
 import { useTypewriter } from './typewriter'
+import { SpeakButton } from './Speak'
 
 type Msg = { role: 'user' | 'assistant'; content: string; offline?: boolean }
 
@@ -49,7 +50,7 @@ export function AssistantScreen({ clientId, lang, onBack }: { clientId: string; 
         {lang === 'kk' ? 'Жасанды интеллект жауап береді, қателесуі мүмкін' : 'Отвечает искусственный интеллект, может ошибаться'}
       </div>
       <div className="flex-1 space-y-2.5 px-4 pb-4">
-        <Bubble role="assistant" content={L('assistant_hello')} />
+        <Bubble role="assistant" content={L('assistant_hello')} lang={lang} />
         <AnimatePresence initial={false}>
           {msgs.length === 0 && (
             <motion.div key="quick" exit={{ opacity: 0, height: 0 }} className="flex flex-wrap gap-2 pt-1">
@@ -64,7 +65,7 @@ export function AssistantScreen({ clientId, lang, onBack }: { clientId: string; 
           )}
         </AnimatePresence>
         {msgs.map((m, i) => <Bubble key={i} role={m.role} content={m.content} note={m.offline ? L('ai_offline') : undefined}
-          type={m.role === 'assistant' && i === msgs.length - 1 && i === typed} onGrow={stick} />)}
+          type={m.role === 'assistant' && i === msgs.length - 1 && i === typed} onGrow={stick} lang={lang} />)}
         <AnimatePresence initial={false}>
           {busy && (
             <motion.div key="thinking" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 40 }} exit={{ opacity: 0, height: 0 }}
@@ -89,7 +90,7 @@ export function AssistantScreen({ clientId, lang, onBack }: { clientId: string; 
   )
 }
 
-function Bubble({ role, content, note, type = false, onGrow }: { role: Msg['role']; content: string; note?: string; type?: boolean; onGrow?: () => void }) {
+function Bubble({ role, content, note, type = false, onGrow, lang }: { role: Msg['role']; content: string; note?: string; type?: boolean; onGrow?: () => void; lang: Lang }) {
   const mine = role === 'user'
   const text = useTypewriter(content, type, onGrow)
   return (
@@ -100,6 +101,7 @@ function Bubble({ role, content, note, type = false, onGrow }: { role: Msg['role
         : 'rounded-2xl rounded-bl-md bg-white text-slate-800 ring-1 ring-slate-100'}`}>
         {!mine && <div className="mb-1 flex items-center gap-1 text-[11px] font-semibold text-teal-700"><Icon name="shield" className="h-3 w-3" />Qaqpan</div>}
         {rich(text)}
+        {!mine && text.length === content.length && content.length > 40 && <div className="mt-2"><SpeakButton lang={lang} text={content} /></div>}
         {note && text.length === content.length && <div className="mt-1 text-[10px] text-slate-400">{note}</div>}
       </div>
     </motion.div>

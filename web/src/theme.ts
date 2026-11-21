@@ -31,3 +31,24 @@ export function useTheme(): Theme {
   }, [])
   return theme
 }
+
+// «Крупный текст» for clients 50+: the whole phone UI is scaled up, remembered on the device
+const LARGE = 'qaqpan.large'
+const LARGE_EVENT = 'qaqpan-large'
+const readLarge = () => { try { return localStorage.getItem(LARGE) === '1' } catch { return false } }
+
+export function setLargeText(on: boolean) {
+  try { localStorage.setItem(LARGE, on ? '1' : '0') } catch { /* storage may be unavailable */ }
+  window.dispatchEvent(new Event(LARGE_EVENT))
+}
+
+export function useLargeText(): boolean {
+  const [on, set] = useState(readLarge)
+  useEffect(() => {
+    const h = () => set(readLarge())
+    window.addEventListener(LARGE_EVENT, h)
+    window.addEventListener('storage', h)
+    return () => { window.removeEventListener(LARGE_EVENT, h); window.removeEventListener('storage', h) }
+  }, [])
+  return on
+}

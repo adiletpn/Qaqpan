@@ -4,7 +4,7 @@ import { api, type CallVerify, type Lang, type Snapshot, type TransferView } fro
 import { tr } from '../i18n'
 import { DEPTH, pageVariants } from '../motion'
 import { useNativeCallSignal } from '../native'
-import { useTheme } from '../theme'
+import { useLargeText, useTheme } from '../theme'
 import { FamilyScreen, FamilySheet, PushBanner } from './family'
 import { AssistantScreen } from './assistant'
 import { Home } from './home'
@@ -16,6 +16,7 @@ export type Screen = 'home' | 'check' | 'transfer' | 'result' | 'victim' | 'sche
 export default function BankApp({ clientId }: { clientId: string }) {
   const [snap, setSnap] = useState<Snapshot | null>(null)
   const theme = useTheme()
+  const large = useLargeText()
   const [offline, setOffline] = useState(false)
   const [screen, setScreenRaw] = useState<Screen>('home')
   const [dir, setDir] = useState(1)
@@ -133,7 +134,7 @@ export default function BankApp({ clientId }: { clientId: string }) {
   })()
 
   return (
-    <div className={`relative flex h-full flex-col overflow-hidden bg-slate-50 text-slate-900 ${theme === 'bcc' ? 'theme-bcc' : ''}`}>
+    <div className={`relative flex h-full w-full flex-col overflow-hidden bg-slate-50 text-slate-900 ${theme === 'bcc' ? 'theme-bcc' : ''} ${large ? 'qq-large' : ''}`}>
       <AnimatePresence initial={false}>
         {offline && (
           <motion.div initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }} className="z-20 shrink-0 overflow-hidden bg-amber-500 text-center text-xs font-semibold text-white">

@@ -15,6 +15,11 @@ const paths: Record<string, string> = {
   image: 'M4 5h16v14H4V5Zm0 10 4-4 4 4 3-3 5 5M15 9.5v.5',
   spark: 'M12 3v4m0 10v4M3 12h4m10 0h4M6 6l2.5 2.5m7 7L18 18M6 18l2.5-2.5m7-7L18 6',
   arrowup: 'M12 19V5m-6 6 6-6 6 6',
+  clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-13v4.5l3 2',
+  speaker: 'M4 9.5h3.5L12 6v12l-4.5-3.5H4v-5Zm11.5-.5a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11',
+  stop: 'M8 8h8v8H8z',
+  key: 'M14.5 9.5a4.5 4.5 0 1 1-1.3-3.2M13.2 6.3 20 13l-2 2-2-2-1.5 1.5-2-2',
+  text: 'M4 7V5h11v2M9.5 5v14M7 19h5M14 12v-1.5h6V12M17 10.5V19M15.5 19h3',
 }
 
 export function Icon({ name, className = 'w-5 h-5' }: { name: keyof typeof paths | string; className?: string }) {

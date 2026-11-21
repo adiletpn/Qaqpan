@@ -3,6 +3,7 @@ import { api, money, type Lang, type Snapshot } from '../api'
 import { tr } from '../i18n'
 import { Icon } from '../ui'
 import type { Screen } from './BankApp'
+import { setLargeText, useLargeText } from '../theme'
 
 type K = Parameters<typeof tr>[1]
 
@@ -23,6 +24,7 @@ export function Home({ snap, lang, onNav, onVerify, onCheck, onToggleLang, onOpe
   snap: Snapshot; lang: Lang; onNav: (s: Screen) => void; onVerify: () => void; onCheck: (s: string | null) => void
   onToggleLang: () => void; onOpenRequest: (id: string) => void
 }) {
+  const large = useLargeText()
   const L = (k: K) => tr(lang, k)
   const [schemes, setSchemes] = useState<{ id: string; title: string }[]>([])
   useEffect(() => { api.schemes(lang).then(setSchemes).catch(() => setSchemes([])) }, [lang])
@@ -54,9 +56,15 @@ export function Home({ snap, lang, onNav, onVerify, onCheck, onToggleLang, onOpe
             <div className="font-bold">{snap.client.short}</div>
           </div>
         </div>
-        <button onClick={onToggleLang} className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-slate-700 ring-1 ring-slate-200">
-          {lang === 'kk' ? 'ҚАЗ' : 'РУС'}
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button onClick={() => setLargeText(!large)} aria-label={L('large_text')} title={L('large_text')}
+            className={`rounded-full px-2.5 py-1.5 text-xs font-bold ring-1 transition ${large ? 'bg-teal-700 text-white ring-teal-700' : 'bg-white text-slate-700 ring-slate-200'}`}>
+            A<span className="text-[15px]">a</span>
+          </button>
+          <button onClick={onToggleLang} className="rounded-full bg-white px-3 py-1.5 text-xs font-bold text-slate-700 ring-1 ring-slate-200">
+            {lang === 'kk' ? 'ҚАЗ' : 'РУС'}
+          </button>
+        </div>
       </div>
 
       {pending && (

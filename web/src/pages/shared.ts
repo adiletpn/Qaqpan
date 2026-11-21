@@ -30,6 +30,7 @@ export const ACTIONS = [
   { key: '3', action: 'transfer_aigerim', title: 'Мошенник диктует перевод 900 000 ₸', hint: 'Аудару → «Жоқ» ×3 (подсказали) → у Ержана push → открыть → «Отклонить перевод»' },
   { key: '4', action: 'transfer_madina', title: 'Мадина платит 150 000 ₸ на тот же счёт', hint: 'После жалобы Айгерим → предупреждение' },
   { key: '5', action: 'victim', title: 'Экран «Если вас обманули»', hint: 'Финал: готовое заявление' },
+  { key: 'S', action: 'skip_hour', title: 'Прошёл час (отложенный перевод)', hint: 'Вывод Qaqpan вступает в силу' },
   { key: 'B', action: 'bank_calls_madina', title: 'Настоящий звонок банка → Мадина', hint: 'Для вопросов: «а если звонит правда банк?»' },
   { key: 'E', action: 'end_call', title: 'Завершить звонок Айгерим', hint: '' },
   { key: 'R', action: 'reset', title: 'Сброс демо', hint: 'Перед каждым прогоном' },

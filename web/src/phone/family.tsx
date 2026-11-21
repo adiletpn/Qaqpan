@@ -4,6 +4,7 @@ import { api, money, type FamilyRequest, type Lang, type Notice, type Shield } f
 import { tr } from '../i18n'
 import { buzz, EASE, SPRING } from '../motion'
 import { Button, Card, Header, Icon } from '../ui'
+import { SpeakButton } from './Speak'
 
 type K = Parameters<typeof tr>[1]
 
@@ -57,6 +58,7 @@ export function FamilySheet({ req, clientId, lang, onDone, onClose }: { req: Fam
       </div>
       <div className="flex-1 space-y-3 overflow-y-auto px-4 pb-4 pt-4">
         <h3 data-tour="family-headline" className="text-[22px] font-extrabold leading-tight text-slate-900">{req.headline}</h3>
+        <SpeakButton lang={lang} text={`${req.headline}. ${req.explanation} ${req.advice}`} />
         <p className="text-[15px] leading-relaxed text-slate-700">{req.explanation}</p>
 
         <Card className="!p-3">
@@ -219,6 +221,19 @@ export function FamilyScreen({ clientId, lang, shield, onBack, onChanged }: { cl
             </ul>
           </Card>
         )}
+
+        <Card>
+          <div className="flex items-center gap-2 font-bold"><Icon name="key" className="h-5 w-5 text-teal-700" />{L('codeword')}</div>
+          <p className="mt-2 text-sm leading-relaxed text-slate-600">{L('codeword_text')}</p>
+          {shield.codeword ? (
+            <div className="mt-3 flex items-center justify-between">
+              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">✓ {L('codeword_done')}</span>
+              <button disabled={busy} onClick={() => act(() => api.codeword(clientId, false))} className="text-xs font-semibold text-slate-400">{L('codeword_undo')}</button>
+            </div>
+          ) : (
+            <Button className="mt-3" tone="light" disabled={busy} onClick={() => act(() => api.codeword(clientId, true))}>{L('codeword_agree')}</Button>
+          )}
+        </Card>
 
         <Card>
           <div className="mb-2 text-sm font-semibold text-slate-500">{L('how_it_works')}</div>

@@ -13,7 +13,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'dart:convert';
+
 import 'package:flutter/services.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -275,6 +278,7 @@ class AppWebView extends StatefulWidget {
 
 class _AppWebViewState extends State<AppWebView> {
   late final WebViewController web;
+  final tts = FlutterTts();
   Timer? callTimer;
   bool? lastOnCall;
   bool ready = false;
@@ -290,6 +294,8 @@ class _AppWebViewState extends State<AppWebView> {
     super.initState();
     web = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      // «Озвучить»: the WebView has no speech synthesis, the page posts {text, lang} here
+      ..addJavaScriptChannel('QaqpanSpeak', onMessageReceived: (m) => speak(m.message))
       ..setBackgroundColor(kBg)
       ..setNavigationDelegate(NavigationDelegate(
         // «Позвонить маме» (tel:) and links to other sites open in the phone's own apps, not inside the WebView
@@ -310,6 +316,20 @@ class _AppWebViewState extends State<AppWebView> {
       ..loadRequest(home);
     _call.invokeMethod('requestPhonePermission').catchError((_) => null);
     callTimer = Timer.periodic(const Duration(seconds: 1), (_) => pushCallState());
+  }
+
+  Future<void> speak(String raw) async {
+    try {
+      final msg = jsonDecode(raw) as Map<String, dynamic>;
+      await tts.stop();
+      if (msg['stop'] == true) return;
+      final lang = (msg['lang'] as String?) ?? 'ru-RU';
+      // Kazakh voices are rare: fall back to Russian, which reads Cyrillic closely enough
+      final ok = await tts.isLanguageAvailable(lang) == true;
+      await tts.setLanguage(ok ? lang : 'ru-RU');
+      await tts.setSpeechRate(0.45);
+      await tts.speak((msg['text'] as String?) ?? '');
+    } catch (_) {/* no TTS engine on this phone */}
   }
 
   Future<void> pushCallState() async {
@@ -358,6 +378,7 @@ class _AppWebViewState extends State<AppWebView> {
   @override
   void dispose() {
     callTimer?.cancel();
+    tts.stop();
     super.dispose();
   }
 

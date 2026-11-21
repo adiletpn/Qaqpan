@@ -1,10 +1,12 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
-import { api, money, type CheckResult, type Lang, type Sample, type SchemeCard, type Snapshot, type TransferView, type VictimHelp } from '../api'
+import { api, money, type CheckResult, type DelayAnalysis, type Lang, type RecipientCheck, type Sample, type SchemeCard, type Snapshot, type TransferView, type VictimHelp } from '../api'
 import { tr } from '../i18n'
 import { buzz, EASE, sleep, SPRING } from '../motion'
 import { Button, Card, Header, Icon, Spinner } from '../ui'
 import { Evidence } from './Evidence'
+import { SpeakButton } from './Speak'
+import { Thinking } from './Thinking'
 
 type K = Parameters<typeof tr>[1]
 
@@ -121,8 +123,16 @@ function Verdict({ res, lang }: { res: CheckResult; lang: Lang }) {
             ))}
           </ul>
         )}
+        {res.tip && (
+          <div className="flex gap-2.5 rounded-2xl bg-teal-50 p-3 text-sm font-medium text-teal-900 ring-1 ring-teal-100">
+            <Icon name="key" className="mt-0.5 h-4 w-4 shrink-0 text-teal-700" />{res.tip}
+          </div>
+        )}
         <div className="rounded-2xl bg-slate-50 p-3 text-sm font-medium">{res.advice}</div>
-        <div className="text-[11px] text-slate-400">{res.source === 'rules' ? L('via_rules') : L('via_ai')}</div>
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] text-slate-400">{res.source === 'rules' ? L('via_rules') : L('via_ai')}</span>
+          <SpeakButton lang={lang} text={[cfg.label, res.scheme_name, ...res.reasons.map(r => r.text), res.tip, res.advice].filter(Boolean).join('. ')} />
+        </div>
       </div>
     </motion.div>
   )
@@ -175,6 +185,7 @@ export function TransferScreen({ clientId, lang, prefill, balance, onBack, onDon
           <label className="text-xs font-semibold text-slate-500">{L('recipient')}</label>
           <input value={account} onChange={e => setAccount(e.target.value)} onPaste={() => { pasted.current = true }}
             placeholder="KZ00 0000 0000 0000 0000" className="mt-1 w-full border-0 p-0 font-mono text-[15px] focus:ring-0 focus:outline-none" />
+          <RecipientBadge clientId={clientId} account={account} />
         </Card>
         <Card>
           <label className="text-xs font-semibold text-slate-500">{L('amount')}</label>
@@ -192,6 +203,78 @@ export function TransferScreen({ clientId, lang, prefill, balance, onBack, onDon
         </Button>
         <div className="flex items-center justify-center gap-1.5 text-xs text-slate-400"><Icon name="shield" className="h-3.5 w-3.5" />{L('qaqpan_on')}</div>
       </div>
+    </div>
+  )
+}
+
+// «Проверить получателя»: as soon as the number is complete — only «complaints / no complaints», never the owner
+function RecipientBadge({ clientId, account }: { clientId: string; account: string }) {
+  const [res, setRes] = useState<RecipientCheck | null>(null)
+  const digits = account.replace(/\D/g, '')
+  useEffect(() => {
+    setRes(null)
+    if (digits.length < 12 || digits.length > 20) return
+    const t = setTimeout(() => { api.checkRecipient(clientId, digits).then(setRes).catch(() => setRes(null)) }, 450)
+    return () => clearTimeout(t)
+  }, [clientId, digits])
+  const tone = { complaints: 'bg-red-50 text-red-800 ring-red-200', signals: 'bg-amber-50 text-amber-900 ring-amber-200',
+    own: 'bg-amber-50 text-amber-900 ring-amber-200', known: 'bg-emerald-50 text-emerald-800 ring-emerald-200',
+    clean: 'bg-slate-50 text-slate-600 ring-slate-200' }
+  return (
+    <AnimatePresence initial={false}>
+      {res && (
+        <motion.div key={res.status} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.22, ease: EASE }} className="overflow-hidden">
+          <div className={`mt-2 flex gap-2 rounded-xl p-2.5 text-[13px] leading-snug ring-1 ${tone[res.status]}`}>
+            <Icon name={res.status === 'known' || res.status === 'clean' ? 'check' : 'alert'} className="mt-0.5 h-4 w-4 shrink-0" />{res.message}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
+}
+
+// «Отложить на час»: a live countdown and what Qaqpan concluded meanwhile
+function Countdown({ until, lang }: { until: number; lang: Lang }) {
+  const [now, setNow] = useState(() => Date.now() / 1000)
+  useEffect(() => { const t = setInterval(() => setNow(Date.now() / 1000), 1000); return () => clearInterval(t) }, [])
+  const left = Math.max(0, Math.round(until - now))
+  const mm = String(Math.floor(left / 60)).padStart(2, '0'), ss = String(left % 60).padStart(2, '0')
+  return (
+    <div className="flex items-center justify-center gap-2 text-sm font-semibold text-slate-600">
+      <Icon name="clock" className="h-4 w-4" />{tr(lang, 'goes_in')} <span className="font-mono tabular-nums text-slate-900">{mm}:{ss}</span>
+    </div>
+  )
+}
+
+function DelayCard({ a, lang }: { a: DelayAnalysis | null | undefined; lang: Lang }) {
+  const tone = { likely_scam: 'bg-red-600', unclear: 'bg-amber-500', likely_ok: 'bg-emerald-600' }
+  return (
+    <div className="min-h-[56px]">
+      <AnimatePresence mode="wait" initial={false}>
+        {!a ? (
+          <motion.div key="t" exit={{ opacity: 0 }} transition={{ duration: 0.2 }}><Thinking lang={lang} /></motion.div>
+        ) : (
+          <motion.div key="a" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={SPRING}
+            className="overflow-hidden rounded-3xl bg-white text-left shadow-sm ring-1 ring-slate-100">
+            <div className={`flex items-center gap-2 px-4 py-3 text-white ${tone[a.verdict]}`}>
+              <Icon name={a.verdict === 'likely_ok' ? 'check' : 'alert'} className="h-5 w-5" />
+              <div className="font-bold">{a.title}</div>
+            </div>
+            <div className="space-y-2 p-4 text-sm">
+              <div className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{tr(lang, 'analysis')}</div>
+              <ul className="space-y-1.5">
+                {a.reasons.map((r, i) => (
+                  <motion.li key={r} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.08, duration: 0.3, ease: EASE }}
+                    className="flex gap-2"><span className="text-slate-400">•</span>{r}</motion.li>
+                ))}
+              </ul>
+              <div className="rounded-2xl bg-slate-50 p-3 font-medium">{a.advice}</div>
+              <div className="flex justify-end"><SpeakButton lang={lang} text={[a.title, ...a.reasons, a.advice].join('. ')} /></div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -246,6 +329,7 @@ export function ResultScreen({ clientId, lang, transfer: t, onUpdate, onHome, on
     completed: { bg: 'bg-emerald-600', icon: 'check' }, warning: { bg: 'bg-amber-500', icon: 'alert' },
     questions: { bg: 'bg-amber-500', icon: 'shield' }, awaiting_family: { bg: 'bg-teal-700', icon: 'family' },
     held: { bg: 'bg-red-600', icon: 'shield' }, escalated: { bg: 'bg-amber-600', icon: 'phone' }, cancelled: { bg: 'bg-emerald-600', icon: 'shield' },
+    delayed: { bg: 'bg-teal-700', icon: 'clock' },
   }[t.status]
 
   return (
@@ -260,6 +344,7 @@ export function ResultScreen({ clientId, lang, transfer: t, onUpdate, onHome, on
         <h2 className="mt-4 text-2xl font-bold leading-tight">{t.title}</h2>
         <div className="mt-1 text-sm text-slate-500">{money(t.amount)} → {t.holder}</div>
         {t.message && <p className="mt-3 text-[15px] leading-relaxed text-slate-700">{t.message}</p>}
+        {t.message && <div className="mt-3 flex justify-center"><SpeakButton lang={lang} text={`${t.title ?? ''}. ${t.message}`} /></div>}
       </div>
 
       {err && <div className="mt-4 rounded-xl bg-red-50 p-3 text-center text-sm text-red-700">{err}</div>}
@@ -289,7 +374,20 @@ export function ResultScreen({ clientId, lang, transfer: t, onUpdate, onHome, on
       {t.status === 'warning' && (
         <div className="mt-6 space-y-2">
           <Button tone="success" disabled={busy} onClick={() => act(() => api.cancel(t.id))}>{L('cancel')}</Button>
+          <Button tour="delay" tone="primary" disabled={busy} onClick={() => act(() => api.delay(t.id))}>
+            <span className="flex flex-col items-center leading-tight"><span className="flex items-center gap-1.5"><Icon name="clock" className="h-4 w-4" />{L('delay')}</span>
+              <span className="mt-0.5 text-[11px] font-normal opacity-80">{L('delay_hint')}</span></span>
+          </Button>
           <Button tone="light" disabled={busy} onClick={() => act(() => api.proceed(t.id))}>{L('proceed')}</Button>
+        </div>
+      )}
+
+      {t.status === 'delayed' && (
+        <div className="mt-5 space-y-3" data-tour="delayed">
+          {t.release_at && <Countdown until={t.release_at} lang={lang} />}
+          <DelayCard a={t.analysis} lang={lang} />
+          <Button tone="success" disabled={busy} onClick={() => act(() => api.cancel(t.id))}>{L('cancel')}</Button>
+          <Button tone="light" onClick={onHome}>{L('home')}</Button>
         </div>
       )}
 
