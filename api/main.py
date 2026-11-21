@@ -406,7 +406,7 @@ def answer_questions(tid: str, req: AnswersRequest) -> TransferView:
             # the client confirmed the pressure herself: the bank decides, the guardian is informed but cannot approve
             tr.level = 3
             tr.reasons.append("SAID_YES")
-            _hold(tr, c, f"{c.short}: подтвердила признаки обмана — перевод {_fmt(tr.amount)} остановлен, решение за банком")
+            _hold(tr, c, f"{c.short}: подтвердил(а) признаки обмана — перевод {_fmt(tr.amount)} остановлен, решение за банком")
             if link and tr.shield:
                 family.notify_confirmed(c.id, tr)
         elif tr.shield and link:
@@ -558,7 +558,8 @@ def complain(req: ComplaintRequest) -> ComplaintResult:
                 STATE.emit("complaint", c.id, f"Жалоба {c.short} на счёт {acc.display} — непроверенный сигнал, добавлен к риску")
             if number and first:
                 STATE.number_complaints[number] = STATE.number_complaints.get(number, 0) + 1
-        return ComplaintResult(message=t("complaint.done", c.lang), account_complaints=acc.complaints,
+        return ComplaintResult(message=t("complaint.done" if confirmed else "complaint.signal", c.lang),
+                               account_complaints=acc.complaints,
                                confirmed=confirmed, number_flagged=number)
 
 
