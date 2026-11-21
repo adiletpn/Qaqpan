@@ -81,9 +81,11 @@ function directorKey(): string | null {
 
 async function req<T>(url: string, body?: unknown, headers: Record<string, string> = {}): Promise<T> {
   let r: Response
+  const k = directorKey()  // a locked stand (QAQPAN_LOCK=1) accepts actions only from devices that know the key
   try {
     r = await fetch(url, body === undefined ? undefined : {
-      method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body),
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...(k ? { 'X-Director-Key': k } : {}), ...headers },
+      body: JSON.stringify(body),
     })
   } catch {
     throw new Error('Нет связи с сервером')
@@ -121,10 +123,7 @@ export const api = {
   stage: () => req<Stage>('/api/stage'),
   assistant: (client_id: string, lang: Lang, messages: { role: 'user' | 'assistant'; content: string }[]) =>
     req<{ reply: string; source: string }>('/api/assistant', { client_id, lang, messages }),
-  director: (action: string) => {
-    const k = directorKey()
-    return req(`/api/director/${action}`, {}, k ? { 'X-Director-Key': k } : {})
-  },
+  director: (action: string) => req(`/api/director/${action}`, {}),
   nativeCall: (id: string, on_call: boolean) => req(`/api/phone/${id}/native-call`, { on_call }),
 }
 

@@ -16,8 +16,8 @@ import os
 import time
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, Header, HTTPException
-from fastapi.responses import FileResponse
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import assistant, director, family, llm, msgcheck, schemes, victim
@@ -43,6 +43,30 @@ def SHADOW() -> bool:  # noqa: N802 — read per request so tests can flip it
     return os.getenv("QAQPAN_SHADOW") == "1"
 DUPLICATE_WINDOW_S = 5
 NAV_TTL_MS = 15_000
+
+
+LOCK_OPEN = ("/api/messages/check",)  # «попробуйте сами»: anyone may check a message even on a locked stand
+
+
+@app.middleware("http")
+async def lock_stand(request: Request, call_next):
+    """QAQPAN_LOCK=1 (a private stand for the final): every action needs the presenter key, so nobody with the link
+    can interfere with the live demo. The phones remember the key from ?key=… like the stage does."""
+    key = os.getenv("QAQPAN_DIRECTOR_KEY")
+    if (os.getenv("QAQPAN_LOCK") == "1" and key and request.method == "POST" and request.url.path.startswith("/api/")
+            and request.url.path not in LOCK_OPEN
+            and not hmac.compare_digest(request.headers.get("x-director-key", ""), key)):
+        return JSONResponse({"detail": "Закрытый стенд: нужен ключ ведущего"}, status_code=403)
+    return await call_next(request)
+
+
+def _idle_reset() -> None:
+    """QAQPAN_IDLE_RESET_MIN=10 on the public link: after 10 quiet minutes the next visitor sees a clean demo,
+    not someone else's test transfers."""
+    minutes = float(os.getenv("QAQPAN_IDLE_RESET_MIN", "0") or 0)
+    with STATE.lock:
+        if minutes and len(STATE.events) > 1 and time.time() - STATE.events[-1].ts > minutes * 60:
+            STATE.reset()
 
 
 def require_director(x_director_key: str | None = Header(default=None)) -> None:
@@ -162,7 +186,8 @@ def _hold(tr: Transfer, c: Client, text: str) -> None:
 @app.get("/api/health")
 def health() -> dict:
     return {"status": "ok", "version": app.version, "llm": llm.status(),
-            "director_protected": bool(os.getenv("QAQPAN_DIRECTOR_KEY"))}
+            "director_protected": bool(os.getenv("QAQPAN_DIRECTOR_KEY")), "locked": os.getenv("QAQPAN_LOCK") == "1",
+            "idle_reset_min": float(os.getenv("QAQPAN_IDLE_RESET_MIN", "0") or 0), "shadow": SHADOW()}
 
 
 @app.get("/api/clients")
@@ -185,6 +210,7 @@ def get_schemes(lang: str = "ru") -> list[dict]:
 @app.get("/api/phone/{cid}")
 def phone(cid: str) -> dict:
     c = _client(cid)
+    _idle_reset()
     with STATE.lock:
         STATE.expire_family()
         call = STATE.calls.get(cid)
@@ -569,6 +595,7 @@ def ask_assistant(req: AssistantRequest) -> assistant.AssistantReply:
 
 @app.get("/api/stage")
 def stage(since: int = 0) -> dict:
+    _idle_reset()
     with STATE.lock:
         return {
             "steps": sorted(STATE.steps),

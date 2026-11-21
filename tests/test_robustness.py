@@ -316,3 +316,22 @@ def test_night_is_almaty_time():
     from api.state import Account
     a = assess(STATE.clients["madina"], Account("1", "1", "x", "BCC"), 10_000, False, False, 0, utc_5am)
     assert "NIGHT" not in a.reasons
+
+
+def test_locked_stand_needs_the_key_except_message_check(monkeypatch):
+    monkeypatch.setenv("QAQPAN_DIRECTOR_KEY", "s3cret")
+    monkeypatch.setenv("QAQPAN_LOCK", "1")
+    body = {"client_id": "aigerim", "account": SCAM, "amount": 1000}
+    assert c.post("/api/transfers", json=body).status_code == 403
+    assert c.post("/api/transfers", json=body, headers={"X-Director-Key": "s3cret"}).status_code == 200
+    assert c.post("/api/messages/check", json={"text": "Привет"}).status_code == 200
+    assert c.get("/api/phone/aigerim").status_code == 200
+
+
+def test_public_link_resets_after_idle(monkeypatch):
+    monkeypatch.setenv("QAQPAN_IDLE_RESET_MIN", "10")
+    c.post("/api/transfers", json={"client_id": "aigerim", "account": SCAM, "amount": 1000})
+    for e in STATE.events:
+        e.ts -= 11 * 60
+    assert c.get("/api/stage").json()["events"][-1]["kind"] == "reset"
+    assert c.get("/api/phone/aigerim").json()["transfers"] == []
