@@ -103,11 +103,13 @@ try:
     click(0, "Аудару 900")
     time.sleep(1.6)  # Qaqpan's visible analysis step
     shot("03_questions")
-    for _ in range(3):
-        js("""(() => { const root = document.querySelectorAll('main > div')[0];
+    for _ in range(8):  # answer «Жоқ» until every question has it
+        left = js("""(() => { const root = document.querySelectorAll('main > div')[0];
           const b = [...root.querySelectorAll('button')].filter(b => b.textContent.trim() === 'Жоқ' && !b.className.includes('bg-slate-800'));
-          if (b[0]) b[0].click(); })()""")
-        time.sleep(0.3)
+          if (b[0]) b[0].click(); return b.length; })()""")
+        time.sleep(0.4)
+        if not left:
+            break
     click(0, "Жауап беру", exact=True)
     time.sleep(1.2)
     shot("04_son_push")

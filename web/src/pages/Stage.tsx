@@ -24,7 +24,7 @@ function useViewport() {
 
 // fit three phones into the viewport by height AND width (projector 1920×1080 down to laptop 1366×768)
 function phoneScale(w: number, h: number) {
-  const byHeight = (h - 228) / PHONE_H
+  const byHeight = (h - 252) / PHONE_H  // header + captions + the event feed
   const byWidth = (w - 48 - 2 * GAP) / (3 * PHONE_W)
   return Math.min(1, Math.max(0.4, Math.min(byHeight, byWidth)))
 }
@@ -141,7 +141,7 @@ export default function Stage() {
         </div>
       )}
 
-      <footer className="mt-2 flex h-[84px] shrink-0 flex-col-reverse justify-start gap-0.5 overflow-hidden text-lg">
+      <footer className="mt-2 flex h-[84px] shrink-0 flex-col-reverse justify-start gap-0.5 overflow-hidden text-base">
         {events.map((e, i) => (
           <div key={e.seq} className={`flex min-w-0 items-center gap-2 transition-opacity ${i === 0 ? 'text-white' : 'text-slate-500'}`}>
             <span className={`h-2 w-2 shrink-0 rounded-full ${e.stopped ? 'bg-emerald-400' : 'bg-slate-500'}`} /><span className="truncate">{e.text}</span>
