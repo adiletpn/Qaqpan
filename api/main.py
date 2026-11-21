@@ -25,15 +25,36 @@ from .risk import assess
 from .schemas import (AnswersRequest, AssistantRequest, CallVerifyRequest, CallVerifyResult, CheckResult, ComplaintRequest,
                       ComplaintResult, FamilyDecision, MessageCheckRequest, NativeCallSignal, Question,
                       TransferRequest, TransferView, VictimHelp, VictimRequest)
-from .state import (BANK_NUMBER, FAMILY_TIMEOUT_S, NATIVE_NUMBER, STATE, Call, Client, FamilyLink, FamilyRequest, Transfer,
-                    digits)
+from .state import (BANK_NUMBER, FAMILY_TIMEOUT_S, NATIVE_NUMBER, SANDBOX_ID, STATE, Call, Client, FamilyLink, FamilyRequest,
+                    Transfer, digits, in_sandbox, sandbox, use_state)
 from .texts import QUESTIONS, reason_text, t
 
 logging.basicConfig(level=logging.INFO)
 ROOT = Path(__file__).resolve().parent.parent
 WEB_DIST = ROOT / "web" / "dist"
 
-app = FastAPI(title="Qaqpan API", version="1.1.0")
+app = FastAPI(title="Qaqpan API", version="1.2.0")
+
+
+class SandboxMiddleware:
+    """X-Qaqpan-Session: <id> routes the request to that visitor's own demo world (self-guided tour on /try)."""
+
+    def __init__(self, app_):
+        self.app = app_
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+        sid = dict(scope.get("headers") or []).get(b"x-qaqpan-session", b"").decode("latin-1")
+        token = use_state(sandbox(sid) if SANDBOX_ID.fullmatch(sid) else None)
+        try:
+            await self.app(scope, receive, send)
+        finally:
+            from .state import _current
+            _current.reset(token)
+
+
+app.add_middleware(SandboxMiddleware)
 
 FLAGGED = ("RECIPIENT_COMPLAINTS", "RECIPIENT_AFC")
 
@@ -53,7 +74,8 @@ async def lock_stand(request: Request, call_next):
     """QAQPAN_LOCK=1 (a private stand for the final): every action needs the presenter key, so nobody with the link
     can interfere with the live demo. The phones remember the key from ?key=… like the stage does."""
     key = os.getenv("QAQPAN_DIRECTOR_KEY")
-    if (os.getenv("QAQPAN_LOCK") == "1" and key and request.method == "POST" and request.url.path.startswith("/api/")
+    if (os.getenv("QAQPAN_LOCK") == "1" and key and not in_sandbox() and request.method == "POST"
+            and request.url.path.startswith("/api/")
             and request.url.path not in LOCK_OPEN
             and not hmac.compare_digest(request.headers.get("x-director-key", ""), key)):
         return JSONResponse({"detail": "Закрытый стенд: нужен ключ ведущего"}, status_code=403)
@@ -72,7 +94,7 @@ def _idle_reset() -> None:
 def require_director(x_director_key: str | None = Header(default=None)) -> None:
     """On a public link set QAQPAN_DIRECTOR_KEY so that only the presenter can drive or reset the demo."""
     key = os.getenv("QAQPAN_DIRECTOR_KEY")
-    if key and not hmac.compare_digest(x_director_key or "", key):
+    if key and not in_sandbox() and not hmac.compare_digest(x_director_key or "", key):  # a sandbox drives only itself
         raise HTTPException(403, "Нужен ключ ведущего")
 
 

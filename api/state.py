@@ -8,6 +8,7 @@ The bank does NOT see the client's SMS or call audio: the timeline only holds wh
 
 from __future__ import annotations
 
+import contextvars
 import itertools
 import re
 import threading
@@ -308,4 +309,48 @@ class State:
                 self.emit("family_expired", fr.from_client, "Доверенное лицо не ответило — перевод ждёт проверки антифрод-аналитика банка")
 
 
-STATE = State()
+
+# ---------------------------------------------------------------- sandboxes for self-guided visitors
+
+SANDBOX_IDLE_S = 30 * 60
+SANDBOX_MAX = 300
+SANDBOX_ID = re.compile(r"[a-z0-9]{8,32}")
+_shared = State()
+_sandboxes: dict[str, tuple[State, float]] = {}
+_sandbox_lock = threading.Lock()
+_current: contextvars.ContextVar[State | None] = contextvars.ContextVar("qaqpan_state", default=None)
+
+
+def sandbox(sid: str) -> State:
+    """Each visitor of /try gets an own demo world, so two jurors never see each other's transfers."""
+    now = time.time()
+    with _sandbox_lock:
+        for k, (_, seen) in list(_sandboxes.items()):
+            if now - seen > SANDBOX_IDLE_S:
+                del _sandboxes[k]
+        if sid not in _sandboxes and len(_sandboxes) >= SANDBOX_MAX:
+            del _sandboxes[min(_sandboxes, key=lambda k: _sandboxes[k][1])]
+        st = _sandboxes[sid][0] if sid in _sandboxes else State()
+        _sandboxes[sid] = (st, now)
+        return st
+
+
+def use_state(st: State | None) -> contextvars.Token:
+    return _current.set(st)
+
+
+def in_sandbox() -> bool:
+    return _current.get() is not None
+
+
+class _StateProxy:
+    """STATE is the shared stage state, or the visitor's sandbox while a request carries X-Qaqpan-Session."""
+
+    def __getattr__(self, name):
+        return getattr(_current.get() or _shared, name)
+
+    def __setattr__(self, name, value):
+        setattr(_current.get() or _shared, name, value)
+
+
+STATE = _StateProxy()

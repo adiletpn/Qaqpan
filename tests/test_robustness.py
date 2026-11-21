@@ -258,7 +258,10 @@ def test_warm_up_does_not_whitelist():
     c.post("/api/phone/aigerim/lang/ru")
     assert send(1_000)["status"] == "completed"
     tr = send(900_000)
-    assert tr["status"] == "awaiting_family" and "новый получатель" in tr["reasons"]
+    assert "новый получатель" in tr["reasons"]
+    if tr["status"] == "questions":  # at night (Almaty) the extra NIGHT weight asks the questions first
+        tr = c.post(f"/api/transfers/{tr['id']}/answers", json={"answers": [False] * 3}).json()
+    assert tr["status"] == "awaiting_family"
 
 
 def test_yes_answers_go_to_the_bank_not_the_son():
@@ -335,3 +338,17 @@ def test_public_link_resets_after_idle(monkeypatch):
         e.ts -= 11 * 60
     assert c.get("/api/stage").json()["events"][-1]["kind"] == "reset"
     assert c.get("/api/phone/aigerim").json()["transfers"] == []
+
+
+def test_sandboxes_are_isolated_and_drive_themselves(monkeypatch):
+    monkeypatch.setenv("QAQPAN_DIRECTOR_KEY", "s3cret")
+    a, b = {"X-Qaqpan-Session": "visitora1"}, {"X-Qaqpan-Session": "visitorb2"}
+    assert c.post("/api/director/call", headers=a).status_code == 200  # no presenter key needed in an own sandbox
+    assert c.post("/api/director/call").status_code == 403            # the shared stage still needs it
+    c.post("/api/phone/aigerim/call/answer", headers=a)
+    assert c.get("/api/phone/aigerim", headers=a).json()["call"]["answered"] is True
+    assert c.get("/api/phone/aigerim", headers=b).json()["call"] is None
+    assert c.get("/api/phone/aigerim").json()["call"] is None
+    tr = c.post("/api/transfers", json={"client_id": "aigerim", "account": SCAM, "amount": 900_000}, headers=a).json()
+    assert tr["status"] == "questions"
+    assert c.get("/api/phone/aigerim", headers=b).json()["transfers"] == []
