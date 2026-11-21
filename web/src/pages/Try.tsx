@@ -2,8 +2,9 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, money, startSandbox } from '../api'
-import { EASE } from '../motion'
 import BankApp from '../phone/BankApp'
+import { Device, DEVICE_H } from '../phone/Device'
+import Starfield from '../Starfield'
 import { Icon } from '../ui'
 import { useStage } from './shared'
 
@@ -89,18 +90,42 @@ const STEPS: Step[] = [
 ]
 
 const TOUR_SEEN = 'qaqpan.try.seen'
+const SPRING = { type: 'spring', stiffness: 420, damping: 40, mass: 0.7 } as const
+type Box = { x: number; y: number; w: number; h: number }
+
+const box = (el: Element): Box => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height } }
+const same = (a: Box | null, b: Box | null, eps = 1) =>
+  !!a && !!b && Math.abs(a.x - b.x) < eps && Math.abs(a.y - b.y) < eps && Math.abs(a.w - b.w) < eps && Math.abs(a.h - b.h) < eps
+
+// Wait until the element stops moving (page transitions, smooth scroll, entrance animations) before the
+// highlight jumps to it: no more «floating back and forth».
+function settled(el: Element, maxMs = 1600): Promise<Box> {
+  return new Promise(resolve => {
+    let last = box(el), still = 0
+    const t0 = performance.now()
+    const tick = () => {
+      const b = box(el)
+      still = same(b, last, 0.5) ? still + 1 : 0
+      last = b
+      if (still >= 6 || performance.now() - t0 > maxMs) resolve(b)
+      else requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+  })
+}
 
 export default function Try() {
   const [ready, setReady] = useState(false)
   const [profile, setProfile] = useState<Profile>('aigerim')
   const [i, setI] = useState<number | null>(null)
-  const [rect, setRect] = useState<DOMRect | null>(null)
+  const [rect, setRect] = useState<Box | null>(null)
   const [busy, setBusy] = useState(false)
   const [epoch, setEpoch] = useState(0)
   const roots = useRef<Record<Profile, HTMLDivElement | null>>({ aigerim: null, erzhan: null, madina: null })
   const { stage } = useStage(1500)
-  const vw = useWidth()
-  const desktop = vw >= 900
+  const vp = useViewport()
+  const desktop = vp.w >= 900
+  const scale = Math.min(1, (vp.h - 96) / DEVICE_H)
 
   const begin = useCallback(async (fresh: boolean) => {
     setReady(false)
@@ -108,7 +133,7 @@ export default function Try() {
     try {
       await api.director('reset')
       await api.setLang('aigerim', 'ru')  // the juror reads Russian first; ҚАЗ is one tap away
-    } catch { /* offline banner in the app says the rest */ }
+    } catch { /* the app shows its own offline banner */ }
     setEpoch(e => e + 1)
     setProfile('aigerim')
     setReady(true)
@@ -124,70 +149,84 @@ export default function Try() {
   }, [begin])
 
   const step = i != null ? STEPS[i] : null
-  const root = step ? roots.current[step.profile] : null
 
-  // run the step's world events, switch the phone, then find the anchor (it may appear after an animation)
+  // run the step's world events, show the right phone, wait for the anchor to appear and settle,
+  // then follow it frame by frame (rAF) — state changes only when it really moves
   useLayoutEffect(() => {
     if (!step) return
-    let alive = true
+    let alive = true, raf = 0
     setRect(null)
     setProfile(step.profile)
     void (async () => {
-      if (step.before) { setBusy(true); await pause(350); await step.before().catch(() => undefined); setBusy(false) }
-      for (let tries = 0; alive && tries < 60; tries++) {
-        const el = step.target ? roots.current[step.profile]?.querySelector(`[data-tour="${step.target}"]`) : null
-        if (!step.target) return
-        if (el) {
-          el.scrollIntoView({ block: 'center', behavior: 'smooth' })
-          await pause(420)
-          if (alive) setRect(el.getBoundingClientRect())
-          return
-        }
-        await pause(150)
+      if (step.before) { setBusy(true); await pause(300); await step.before().catch(() => undefined); setBusy(false) }
+      if (!step.target) return
+      let el: Element | null = null
+      for (let tries = 0; alive && !el && tries < 80; tries++) {
+        el = roots.current[step.profile]?.querySelector(`[data-tour="${step.target}"]`) ?? null
+        if (!el) await pause(120)
       }
+      if (!alive || !el) return
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      let cur = await settled(el)
+      if (!alive) return
+      setRect(cur)
+      const follow = () => {
+        const now = roots.current[step.profile]?.querySelector(`[data-tour="${step.target}"]`)
+        if (now) { const b = box(now); if (!same(b, cur, 1.5)) { cur = b; setRect(b) } }
+        raf = requestAnimationFrame(follow)
+      }
+      raf = requestAnimationFrame(follow)
     })()
-    return () => { alive = false }
+    return () => { alive = false; cancelAnimationFrame(raf) }
   }, [step])
 
-  // keep the highlight on the element while things move; tapping it yourself advances the tour
-  const hasRect = rect !== null
+  // tapping the highlighted element yourself advances the tour
+  const anchored = rect !== null
   useEffect(() => {
-    if (!step?.target || !root) return
-    const el = root.querySelector(`[data-tour="${step.target}"]`)
-    const measure = () => { const e = root.querySelector(`[data-tour="${step.target}"]`); if (e) setRect(e.getBoundingClientRect()) }
-    const t = setInterval(measure, 400)
-    window.addEventListener('resize', measure)
-    const onTap = () => { if (step.next === 'click') setTimeout(() => setI(n => (n == null ? n : n + 1)), 120) }
+    if (!step?.target || step.next !== 'click' || !anchored) return
+    const el = roots.current[step.profile]?.querySelector(`[data-tour="${step.target}"]`)
+    const onTap = () => setTimeout(() => setI(n => (n == null ? n : n + 1)), 120)
     el?.addEventListener('click', onTap)
-    return () => { clearInterval(t); window.removeEventListener('resize', measure); el?.removeEventListener('click', onTap) }
-  }, [step, root, hasRect])
+    return () => el?.removeEventListener('click', onTap)
+  }, [step, anchored])
 
   const finish = () => { try { sessionStorage.setItem(TOUR_SEEN, '1') } catch { /* ignore */ } setI(null) }
   const next = async () => {
     if (i == null || !step) return
     if (i === STEPS.length - 1) return finish()
     const r = roots.current[step.profile]
-    if (r && step.next === 'click') r.querySelector<HTMLElement>(`[data-tour="${step.target}"]`)?.click()
-    else if (r && typeof step.next === 'function') { setBusy(true); await step.next(r); setBusy(false) }
-    else setI(i + 1)
-    if (step.next === 'click') return  // the tap listener advances
-    if (typeof step.next === 'function') setI(i + 1)
+    if (r && step.next === 'click') { r.querySelector<HTMLElement>(`[data-tour="${step.target}"]`)?.click(); return }  // the tap listener advances
+    if (r && typeof step.next === 'function') { setBusy(true); await step.next(r); setBusy(false) }
+    setI(i + 1)
   }
 
+  // the card: measured once per content change, moved only with transforms
+  const cardRef = useRef<HTMLDivElement>(null)
+  const [cardH, setCardH] = useState(200)
+  useLayoutEffect(() => {
+    const el = cardRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => setCardH(el.offsetHeight))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [step])
+  const cardW = desktop ? 340 : vp.w - 24
+  const pos = cardPos(rect, desktop, vp, cardW, cardH)
   const pad = 8
-  const card = cardPosition(rect, desktop)
 
   return (
-    <div className="flex h-[100dvh] flex-col overflow-hidden bg-slate-950 text-white">
-      <header className="flex shrink-0 items-center gap-2 px-3 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] md:px-6 md:pt-4">
-        <Link to="/" className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-500"><Icon name="shield" className="h-5 w-5" /></Link>
+    <div className="relative flex h-[100dvh] flex-col overflow-hidden text-white">
+      <Starfield />
+      <header className="relative z-10 flex shrink-0 items-center gap-2 px-3 pb-2 pt-[max(0.5rem,env(safe-area-inset-top))] md:px-6 md:pt-4">
+        <Link to="/" className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-500 shadow-[0_0_24px_rgba(52,211,153,.35)]"><Icon name="shield" className="h-5 w-5" /></Link>
         {desktop && <div className="mr-2 leading-tight"><div className="font-black">Qaqpan</div><div className="text-[11px] text-slate-400">попробуйте сами</div></div>}
-        <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto rounded-2xl bg-white/5 p-1 md:max-w-md">
+        <div className="flex min-w-0 flex-1 gap-1 rounded-2xl bg-white/[0.06] p-1 ring-1 ring-white/10 backdrop-blur md:max-w-md">
           {PROFILES.map(p => (
             <button key={p.id} onClick={() => setProfile(p.id)}
-              className={`min-w-0 flex-1 rounded-xl px-2 py-1.5 text-center text-xs font-semibold transition ${profile === p.id ? 'bg-white text-slate-900' : 'text-slate-300'}`}>
-              <div className="truncate">{p.name}</div>
-              <div className={`truncate text-[10px] font-normal ${profile === p.id ? 'text-slate-500' : 'text-slate-500'}`}>{p.role}</div>
+              className={`relative min-w-0 flex-1 rounded-xl px-2 py-1.5 text-center text-xs font-semibold transition-colors duration-200 ${profile === p.id ? 'text-slate-900' : 'text-slate-300'}`}>
+              {profile === p.id && <motion.span layoutId="tab" transition={SPRING} className="absolute inset-0 rounded-xl bg-white" />}
+              <span className="relative block truncate">{p.name}</span>
+              <span className="relative block truncate text-[10px] font-normal text-slate-500">{p.role}</span>
             </button>
           ))}
         </div>
@@ -196,13 +235,20 @@ export default function Try() {
           <div className="text-[10px] text-slate-400">спасено</div>
         </div>
         <button onClick={() => void begin(true)} aria-label="Пройти заново" title="Пройти экскурсию заново"
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/10 text-sm font-bold">?</button>
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/10 text-sm font-bold ring-1 ring-white/10">?</button>
       </header>
 
-      <main className="relative flex min-h-0 flex-1 items-center justify-center md:pb-6">
-        {PROFILES.map(p => (
-          <div key={`${p.id}-${epoch}`} ref={el => { roots.current[p.id] = el }}
-            className={profile === p.id ? (desktop ? 'h-full max-h-[820px] w-[390px] overflow-hidden rounded-[40px] border-[8px] border-slate-800 bg-slate-50 shadow-2xl' : 'h-full w-full bg-slate-50') : 'hidden'}>
+      <main className="relative z-10 flex min-h-0 flex-1 items-center justify-center md:pb-4">
+        {desktop ? (
+          <Device scale={scale}>
+            {PROFILES.map(p => (
+              <div key={`${p.id}-${epoch}`} ref={el => { roots.current[p.id] = el }} className={profile === p.id ? 'h-full' : 'hidden'}>
+                {ready && <BankApp clientId={p.id} />}
+              </div>
+            ))}
+          </Device>
+        ) : PROFILES.map(p => (
+          <div key={`${p.id}-${epoch}`} ref={el => { roots.current[p.id] = el }} className={profile === p.id ? 'h-full w-full bg-slate-50' : 'hidden'}>
             {ready && <BankApp clientId={p.id} />}
           </div>
         ))}
@@ -210,31 +256,37 @@ export default function Try() {
 
       <AnimatePresence>
         {step && (
-          <motion.div key="tour" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pointer-events-none fixed inset-0 z-[60]">
-            {rect ? (
-              <div className="fixed rounded-2xl transition-all duration-300"
-                style={{ left: rect.left - pad, top: rect.top - pad, width: rect.width + pad * 2, height: rect.height + pad * 2,
-                  boxShadow: '0 0 0 9999px rgba(2,6,23,.55), 0 0 0 3px #34d399' }} />
-            ) : (
-              <div className="fixed inset-0 bg-slate-950/55" />
-            )}
-            <motion.div key={i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, ease: EASE }}
-              className="pointer-events-auto fixed rounded-3xl bg-white p-4 text-slate-900 shadow-[0_20px_60px_rgba(0,0,0,.35)]" style={card}>
+          <motion.div key="tour" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}
+            className="pointer-events-none fixed inset-0 z-[60]">
+            {/* spotlight: one element, moved with transforms; the dim is its huge shadow */}
+            <motion.div className="fixed left-0 top-0 rounded-2xl" style={{ willChange: 'transform' }}
+              initial={false}
+              animate={rect
+                ? { x: rect.x - pad, y: rect.y - pad, width: rect.w + pad * 2, height: rect.h + pad * 2, boxShadow: '0 0 0 9999px rgba(2,6,23,.55), 0 0 0 3px rgba(52,211,153,1)' }
+                : { x: vp.w / 2, y: vp.h / 2, width: 0, height: 0, boxShadow: '0 0 0 9999px rgba(2,6,23,.55), 0 0 0 0px rgba(52,211,153,0)' }}
+              transition={SPRING} />
+            <motion.div ref={cardRef} className="pointer-events-auto fixed left-0 top-0 rounded-3xl bg-white/95 p-4 text-slate-900 shadow-[0_24px_70px_rgba(0,0,0,.45)] ring-1 ring-black/5 backdrop-blur-xl"
+              style={{ width: cardW, willChange: 'transform' }}
+              initial={{ x: pos.x, y: pos.y + 16, opacity: 0 }} animate={{ x: pos.x, y: pos.y, opacity: 1 }} transition={SPRING}>
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">{i! + 1} / {STEPS.length}</span>
                 <button onClick={finish} className="text-xs text-slate-400">Пропустить</button>
               </div>
-              <div className="mt-1 text-[17px] font-bold leading-snug">{step.title}</div>
-              <p className="mt-1.5 text-[14px] leading-relaxed text-slate-600">{step.text}</p>
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div key={i} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.16 }}>
+                  <div className="mt-1 text-[17px] font-bold leading-snug">{step.title}</div>
+                  <p className="mt-1.5 text-[14px] leading-relaxed text-slate-600">{step.text}</p>
+                </motion.div>
+              </AnimatePresence>
               <div className="mt-3 flex gap-2">
                 {i! > 0 && i! < STEPS.length - 1 && (
-                  <button onClick={() => setI(i! - 1)} className="rounded-2xl px-4 py-2.5 text-sm font-semibold text-slate-600 ring-1 ring-slate-200">Назад</button>
+                  <button onClick={() => setI(i! - 1)} className="rounded-2xl px-4 py-2.5 text-sm font-semibold text-slate-600 ring-1 ring-slate-200 active:scale-[0.97]">Назад</button>
                 )}
                 {i === STEPS.length - 1 && (
-                  <button onClick={() => void begin(true)} className="rounded-2xl px-4 py-2.5 text-sm font-semibold text-slate-600 ring-1 ring-slate-200">Пройти заново</button>
+                  <button onClick={() => void begin(true)} className="rounded-2xl px-4 py-2.5 text-sm font-semibold text-slate-600 ring-1 ring-slate-200 active:scale-[0.97]">Пройти заново</button>
                 )}
                 <button onClick={() => void next()} disabled={busy}
-                  className="flex-1 rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60">
+                  className="flex-1 rounded-2xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-transform active:scale-[0.97] disabled:opacity-60">
                   {busy ? '…' : step.cta ?? 'Далее'}
                 </button>
               </div>
@@ -246,29 +298,29 @@ export default function Try() {
   )
 }
 
-type Pos = { left?: number | string; right?: number | string; top?: number | string; bottom?: number | string; width?: number }
-
-function cardPosition(rect: DOMRect | null, desktop: boolean): Pos {
-  const vw = window.innerWidth, vh = window.innerHeight
+function cardPos(rect: Box | null, desktop: boolean, vp: { w: number; h: number }, w: number, h: number) {
+  const margin = 12
   if (desktop) {
-    const W = 340
-    if (!rect) return { width: W, left: vw / 2 - W / 2, top: vh / 2 - 120 }
-    const phoneRight = vw / 2 + 195 + 24
-    const left = phoneRight + W + 16 < vw ? phoneRight : Math.max(16, vw / 2 - 195 - W - 24)
-    return { width: W, left, top: Math.max(16, Math.min(vh - 260, rect.top - 20)) }
+    if (!rect) return { x: vp.w / 2 - w / 2, y: vp.h / 2 - h / 2 }
+    const right = rect.x + rect.w + 28
+    const x = right + w + margin < vp.w ? right : Math.max(margin, rect.x - w - 28)
+    return { x, y: Math.max(margin, Math.min(vp.h - h - margin, rect.y + rect.h / 2 - h / 2)) }
   }
-  // phone: the card sits at the edge away from the highlighted element
-  const base: Pos = { left: 12, right: 12 }
-  if (!rect) return { ...base, bottom: 'max(12px, env(safe-area-inset-bottom))' }
-  return rect.top + rect.height / 2 > vh / 2 ? { ...base, top: 'max(12px, env(safe-area-inset-top))' } : { ...base, bottom: 'max(12px, env(safe-area-inset-bottom))' }
+  // phone: the card sits at the screen edge away from the highlighted element
+  const top = { x: margin, y: margin + 4 }
+  const bottom = { x: margin, y: vp.h - h - margin }
+  if (!rect) return bottom
+  return rect.y + rect.h / 2 > vp.h / 2 ? top : bottom
 }
 
-function useWidth() {
-  const [w, setW] = useState(() => window.innerWidth)
+function useViewport() {
+  const read = () => ({ w: window.innerWidth, h: window.innerHeight })
+  const [vp, setVp] = useState(read)
   useEffect(() => {
-    const h = () => setW(window.innerWidth)
+    let raf = 0
+    const h = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => setVp(read())) }
     window.addEventListener('resize', h)
-    return () => window.removeEventListener('resize', h)
+    return () => { window.removeEventListener('resize', h); cancelAnimationFrame(raf) }
   }, [])
-  return w
+  return vp
 }

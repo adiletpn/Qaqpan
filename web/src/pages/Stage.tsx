@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { money } from '../api'
 import BankApp from '../phone/BankApp'
+import { Device, DEVICE_H, DEVICE_W } from '../phone/Device'
+import Starfield from '../Starfield'
 import { Icon } from '../ui'
 import { setTheme, useTheme } from '../theme'
 import { ACTIONS, STEPS, useDirectorHotkeys, useStage } from './shared'
@@ -11,7 +13,7 @@ const PHONES = [
   { id: 'madina', caption: 'Мадина, 34', role: 'другая клиентка' },
 ]
 
-const PHONE_W = 390, PHONE_H = 820, GAP = 40
+const PHONE_W = DEVICE_W, PHONE_H = DEVICE_H, GAP = 40
 
 function useViewport() {
   const [vp, setVp] = useState({ w: window.innerWidth, h: window.innerHeight })
@@ -31,20 +33,7 @@ function phoneScale(w: number, h: number) {
 }
 
 export function PhoneFrame({ clientId, scale = 1 }: { clientId: string; scale?: number }) {
-  const W = PHONE_W, H = PHONE_H
-  return (
-    <div style={{ width: W * scale, height: H * scale }}>
-      <div style={{ width: W, height: H, transform: `scale(${scale})`, transformOrigin: 'top left' }}
-        className="overflow-hidden rounded-[48px] border-[10px] border-slate-900 bg-slate-900 shadow-2xl ring-1 ring-white/10">
-        <div className="relative h-full overflow-hidden rounded-[38px] bg-slate-50">
-          <div className="flex h-7 items-center justify-between bg-slate-50 px-7 text-[11px] font-semibold text-slate-800">
-            <span>9:41</span><span className="h-4 w-20 rounded-full bg-slate-900" /><span>LTE</span>
-          </div>
-          <div className="h-[calc(100%-1.75rem)]"><BankApp clientId={clientId} /></div>
-        </div>
-      </div>
-    </div>
-  )
+  return <Device scale={scale}><BankApp clientId={clientId} /></Device>
 }
 
 export function StepsBar({ fired, compact = false }: { fired: string[]; compact?: boolean }) {
@@ -106,8 +95,9 @@ export default function Stage() {
     )
   }
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-slate-950 px-6 py-4 text-white">
-      <header className="flex items-center justify-between gap-4">
+    <div className="relative flex h-screen flex-col overflow-hidden px-6 py-4 text-white">
+      <Starfield />
+      <header className="relative z-10 flex items-center justify-between gap-4">
         <div className="flex shrink-0 items-center gap-3">
           <div className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-500"><Icon name="shield" className="h-6 w-6" /></div>
           <div>
@@ -122,7 +112,7 @@ export default function Stage() {
         </div>
       </header>
 
-      <main className="mt-4 flex min-h-0 flex-1 items-start justify-center" style={{ gap: GAP }}>
+      <main className="relative z-10 mt-4 flex min-h-0 flex-1 items-start justify-center" style={{ gap: GAP }}>
         {PHONES.map(p => (
           <div key={p.id} className="flex flex-col items-center">
             <PhoneFrame clientId={p.id} scale={scale} />
@@ -150,7 +140,7 @@ export default function Stage() {
         </div>
       )}
 
-      <footer className="mt-2 flex h-[84px] shrink-0 flex-col-reverse justify-start gap-0.5 overflow-hidden text-base">
+      <footer className="relative z-10 mt-2 flex h-[84px] shrink-0 flex-col-reverse justify-start gap-0.5 overflow-hidden text-base">
         {events.map((e, i) => (
           <div key={e.seq} className={`flex min-w-0 items-center gap-2 transition-opacity ${i === 0 ? 'text-white' : 'text-slate-500'}`}>
             <span className={`h-2 w-2 shrink-0 rounded-full ${e.stopped ? 'bg-emerald-400' : 'bg-slate-500'}`} /><span className="truncate">{e.text}</span>

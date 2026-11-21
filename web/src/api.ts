@@ -1,6 +1,6 @@
 export type Lang = 'ru' | 'kk'
 
-export interface Reason { code: string; text: string }
+export interface Reason { code: string; text: string; spans?: [number, number][] }
 export interface CheckResult {
   verdict: 'scam' | 'suspicious' | 'safe'
   score: number

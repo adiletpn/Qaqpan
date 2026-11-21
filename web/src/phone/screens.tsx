@@ -4,6 +4,7 @@ import { api, money, type CheckResult, type Lang, type Sample, type SchemeCard, 
 import { tr } from '../i18n'
 import { buzz, EASE, sleep, SPRING } from '../motion'
 import { Button, Card, Header, Icon, Spinner } from '../ui'
+import { Evidence } from './Evidence'
 
 type K = Parameters<typeof tr>[1]
 
@@ -112,12 +113,14 @@ function Verdict({ res, lang }: { res: CheckResult; lang: Lang }) {
         </div>
       </div>
       <div className="space-y-3 p-4">
-        <ul className="space-y-1.5 text-sm">
-          {res.reasons.map((r, i) => (
-            <motion.li key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 + i * 0.08, duration: 0.3, ease: EASE }}
-              className="flex gap-2"><span className="text-slate-400">•</span>{r.text}</motion.li>
-          ))}
-        </ul>
+        {res.text && res.reasons.some(r => r.spans?.length) ? <Evidence text={res.text} reasons={res.reasons} lang={lang} /> : (
+          <ul className="space-y-1.5 text-sm">
+            {res.reasons.map((r, i) => (
+              <motion.li key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 + i * 0.08, duration: 0.3, ease: EASE }}
+                className="flex gap-2"><span className="text-slate-400">•</span>{r.text}</motion.li>
+            ))}
+          </ul>
+        )}
         <div className="rounded-2xl bg-slate-50 p-3 text-sm font-medium">{res.advice}</div>
         <div className="text-[11px] text-slate-400">{res.source === 'rules' ? L('via_rules') : L('via_ai')}</div>
       </div>

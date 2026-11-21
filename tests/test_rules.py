@@ -90,3 +90,19 @@ def test_kazakh_screen_drops_russian_ai_text(monkeypatch):
     r = msgcheck.check_llm("ЭЦП истекает", None, "image/png", "kk", {"text": "x", "img": ""})
     assert [x.text for x in r.reasons] == ["Сілтеме жалған сайтқа апарады"]
     assert r.advice == msgcheck.ADVICE["scam"]["kk"]
+
+
+def test_reasons_point_at_the_words_in_the_message():
+    text = "Срочно! Ваша карта заблокирована. Назовите код из SMS. Продлите ЭЦП: egov-kz.online/ecp"
+    r = check_rules(text, "ru")
+    marked = {x.code: [text[a:b] for a, b in x.spans] for x in r.reasons}
+    assert marked["LINK_LOOKALIKE"] == ["egov-kz.online/ecp"]
+    assert marked["CODE_REQUEST"] == ["Назовите код"]
+    assert any("заблокирована" in s for s in marked["BLOCKED"])
+
+
+def test_otp_warning_keeps_positions_for_highlights():
+    text = "Код 4821. Никому не сообщайте код. Подробнее: bit.ly/a1"
+    r = check_rules(text, "ru")
+    sp = next(x.spans for x in r.reasons if x.code == "LINK_SHORTENER")
+    assert text[sp[0][0]:sp[0][1]] == "bit.ly/a1"

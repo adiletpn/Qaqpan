@@ -48,7 +48,8 @@ class Rule:
 
 
 def _r(p: str) -> re.Pattern:
-    return re.compile(p, re.I | re.U)
+    # lazy gaps («ЭЦП … истекает») match the same texts but put the second key word on the nearest one
+    return re.compile(re.sub(r"\.\{0,(\d+)\}(?!\?)", r".{0,\1}?", p), re.I | re.U)
 
 
 RULES = [
@@ -159,6 +160,7 @@ SCHEME_NAME: dict[str, dict[str, str]] = {
 class Reason(BaseModel):
     code: str
     text: str
+    spans: list[tuple[int, int]] = []  # where in CheckResult.text this reason is visible: highlighted for the client
 
 
 class CheckResult(BaseModel):
@@ -172,54 +174,91 @@ class CheckResult(BaseModel):
     text: str | None = None  # recognised / analysed text (shown to the user)
 
 
-def _domain_reasons(text: str) -> list[tuple[str, float, str]]:
+Span = tuple[int, int]
+
+
+def _domain_reasons(text: str) -> list[tuple[str, float, str, list[Span]]]:
     out = []
     for m in URL_RE.finditer(text):
         dom = m.group(1).lower()
         if re.fullmatch(r"\d+(\.\d+)*", dom) or "." not in dom:
             continue
+        span = [m.span(0)]
         if dom in SHORTENERS:
-            out.append(("LINK_SHORTENER", 0.35, dom))
+            out.append(("LINK_SHORTENER", 0.35, dom, span))
         elif any(dom == d or dom.endswith("." + d) for d in OFFICIAL_DOMAINS):
             continue
         elif any(b in dom for b in BRANDS):
-            out.append(("LINK_LOOKALIKE", 0.55, dom))
+            out.append(("LINK_LOOKALIKE", 0.55, dom, span))
         elif dom.rsplit(".", 1)[-1] in RISKY_TLDS:
-            out.append(("LINK_RISKY", 0.4, dom))
+            out.append(("LINK_RISKY", 0.4, dom, span))
         elif "/" in (m.group(0) or "") or m.group(0).lower().startswith("http") or re.search(r"\.(ru|com|net|org|xyz|top|online|site|info|kz|cc|me|link|click)$", dom):
-            out.append(("LINK_UNKNOWN", 0.2, dom))
+            out.append(("LINK_UNKNOWN", 0.2, dom, span))
     return out
 
 
-def _matches(rule: Rule, norm: str) -> bool:
+def _merge(spans: list[Span]) -> list[Span]:
+    out: list[Span] = []
+    for a, b in sorted(spans):
+        if out and a <= out[-1][1]:
+            out[-1] = (out[-1][0], max(out[-1][1], b))
+        else:
+            out.append((a, b))
+    return out
+
+
+def _spans(rule: Rule, norm: str) -> list[Span]:
+    """Where the rule fires (negated hits skipped). A long match like «ЭЦП … (60 chars) … истекает» is
+    highlighted by its key words only, so the marker lands on what matters."""
+    out: list[Span] = []
     for m in rule.pattern.finditer(norm):
         around = norm[max(0, m.start() - 60):m.start()] + " | " + norm[m.end():m.end() + 25]  # «…счетов» не существует
-        if rule.code not in NEGATABLE or not NEGATION.search(around):
-            return True
-    return False
+        if rule.code in NEGATABLE and NEGATION.search(around):
+            continue
+        if m.end() - m.start() > 24 and m.lastindex:
+            out += [m.span(g) for g in range(1, m.lastindex + 1) if m.group(g) and m.end(g) - m.start(g) < 40]
+        else:
+            out.append(m.span())
+    return _merge([_word(norm, a, b) for a, b in out if b > a])
+
+
+def _word(text: str, a: int, b: int) -> Span:
+    """Grow a hit to whole words: «продл» → «продлите»."""
+    while a > 0 and text[a - 1].isalnum():
+        a -= 1
+    while b < len(text) and text[b].isalnum():
+        b += 1
+    return a, b
 
 
 def check_rules(text: str, lang: Lang) -> CheckResult:
     norm = text.lower().replace("ё", "е")
     legit_otp = bool(LEGIT_OTP.search(norm))
-    norm = LEGIT_OTP.sub(" ", norm)  # «никому не сообщайте код» must not count as a code request
-    hits: list[tuple[str, float, dict]] = [(r.code, r.weight, {}) for r in RULES if _matches(r, norm)]
+    # «никому не сообщайте код» must not count as a code request; same length keeps positions for highlights
+    norm = LEGIT_OTP.sub(lambda m: " " * len(m.group(0)), norm)
+    aligned = len(norm) == len(text)
+    hits: list[tuple[str, float, dict, list[Span]]] = []
+    for r in RULES:
+        sp = _spans(r, norm)
+        if sp:
+            hits.append((r.code, r.weight, {}, sp))
     if any(h[0] == "DELIVERY" for h in hits):  # «оплатите доставку по ссылке» is OLX, not a post parcel
         hits = [h for h in hits if h[0] != "PARCEL"]
-    hits += [(code, w, {"domain": dom}) for code, w, dom in _domain_reasons(norm)]
+    hits += [(code, w, {"domain": dom}, sp) for code, w, dom, sp in _domain_reasons(norm)]
     keep = 1.0
-    for _, w, _ in hits:
+    for _, w, _, _ in hits:
         keep *= 1 - w
     score = 1 - keep
-    if legit_otp and not any(c in ("CODE_REQUEST", "LINK_LOOKALIKE", "LINK_SHORTENER", "SAFE_ACCOUNT") for c, _, _ in hits):
+    if legit_otp and not any(c in ("CODE_REQUEST", "LINK_LOOKALIKE", "LINK_SHORTENER", "SAFE_ACCOUNT") for c, *_ in hits):
         score = max(0.0, score - 0.5)
-        hits.append(("LEGIT_OTP", -0.5, {}))
+        hits.append(("LEGIT_OTP", -0.5, {}, []))
     verdict: Verdict = "scam" if score >= 0.6 else "suspicious" if score >= 0.3 else "safe"
     specific = [h for h in hits if h[1] > 0 and h[0] in SCHEME_OF and not h[0].startswith("LINK_")]
     links = [h for h in hits if h[0] in SCHEME_OF and h[0].startswith("LINK_")]
     top = max(specific or links, key=lambda h: h[1], default=None)
     scheme = SCHEME_OF[top[0]] if top and verdict != "safe" else None
-    reasons = [Reason(code=c, text=REASON_TEXT[c][lang].format(**kw)) for c, w, kw in sorted(hits, key=lambda h: -h[1])]
+    reasons = [Reason(code=c, text=REASON_TEXT[c][lang].format(**kw), spans=sp if aligned and w > 0 else [])
+               for c, w, kw, sp in sorted(hits, key=lambda h: -h[1])]
     return CheckResult(verdict=verdict, score=round(score, 2), scheme=scheme,
                        scheme_name=SCHEME_NAME[scheme][lang] if scheme else None,
                        reasons=reasons[:4], advice=ADVICE[verdict][lang], source="rules", text=text)
@@ -331,6 +370,9 @@ def check(text: str | None, image_b64: str | None, media_type: str, sample_id: s
     payload = {"text": text or "", "img": hashlib.sha256((image_b64 or "").encode()).hexdigest()[:32] if image_b64 else ""}
     rules = check_rules(text, lang) if text else None
     via_llm = check_llm(text, image_b64, media_type, lang, payload)
+    if rules is None and via_llm and via_llm.text:  # a screenshot read by the AI: highlight what the rules see in it
+        text = via_llm.text
+        rules = check_rules(text, lang)
     if via_llm and rules:
         # two-stage check: curated rule reasons first, AI adds what rules cannot explain;
         # the AI may raise the verdict but never make it softer than the rules (a «verdict: safe» inside the SMS

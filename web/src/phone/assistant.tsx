@@ -1,9 +1,11 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, type Lang } from '../api'
 import { tr } from '../i18n'
 import { buzz, EASE, SPRING } from '../motion'
 import { Header, Icon } from '../ui'
+import { Thinking } from './Thinking'
+import { useTypewriter } from './typewriter'
 
 type Msg = { role: 'user' | 'assistant'; content: string; offline?: boolean }
 
@@ -20,6 +22,9 @@ export function AssistantScreen({ clientId, lang, onBack }: { clientId: string; 
   const bottom = useRef<HTMLDivElement>(null)
 
   useEffect(() => { bottom.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }) }, [msgs, busy])
+  // while the answer «types», keep the newest line in view without smooth-scroll fights
+  const stick = useCallback(() => bottom.current?.scrollIntoView({ block: 'end' }), [])
+  const [typed, setTyped] = useState(-1)  // index of the answer to reveal with the typewriter
 
   const send = async (content: string) => {
     const q = content.trim()
@@ -29,7 +34,7 @@ export function AssistantScreen({ clientId, lang, onBack }: { clientId: string; 
     try {
       const r = await api.assistant(clientId, lang, next.map(({ role, content }) => ({ role, content })))
       buzz(15)
-      setMsgs(m => [...m, { role: 'assistant', content: r.reply, offline: r.source === 'offline' }])
+      setMsgs(m => { setTyped(m.length); return [...m, { role: 'assistant', content: r.reply, offline: r.source === 'offline' }] })
     } catch (e) {
       setMsgs(m => [...m, { role: 'assistant', content: e instanceof Error ? e.message : L('error'), offline: true }])
     } finally { setBusy(false) }
@@ -58,15 +63,16 @@ export function AssistantScreen({ clientId, lang, onBack }: { clientId: string; 
             </motion.div>
           )}
         </AnimatePresence>
-        {msgs.map((m, i) => <Bubble key={i} role={m.role} content={m.content} note={m.offline ? L('ai_offline') : undefined} />)}
-        {busy && (
-          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="flex w-16 items-center justify-center gap-1 rounded-2xl rounded-bl-md bg-white px-3 py-3 shadow-sm ring-1 ring-slate-100">
-            {[0, 1, 2].map(d => (
-              <motion.span key={d} className="h-1.5 w-1.5 rounded-full bg-teal-600" animate={{ y: [0, -4, 0], opacity: [0.4, 1, 0.4] }}
-                transition={{ duration: 0.9, repeat: Infinity, delay: d * 0.15 }} />
-            ))}
-          </motion.div>
-        )}
+        {msgs.map((m, i) => <Bubble key={i} role={m.role} content={m.content} note={m.offline ? L('ai_offline') : undefined}
+          type={m.role === 'assistant' && i === msgs.length - 1 && i === typed} onGrow={stick} />)}
+        <AnimatePresence initial={false}>
+          {busy && (
+            <motion.div key="thinking" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 40 }} exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }} className="overflow-hidden">
+              <Thinking lang={lang} />
+            </motion.div>
+          )}
+        </AnimatePresence>
         <div ref={bottom} />
       </div>
       <form onSubmit={e => { e.preventDefault(); send(text) }}
@@ -83,8 +89,9 @@ export function AssistantScreen({ clientId, lang, onBack }: { clientId: string; 
   )
 }
 
-function Bubble({ role, content, note }: { role: Msg['role']; content: string; note?: string }) {
+function Bubble({ role, content, note, type = false, onGrow }: { role: Msg['role']; content: string; note?: string; type?: boolean; onGrow?: () => void }) {
   const mine = role === 'user'
+  const text = useTypewriter(content, type, onGrow)
   return (
     <motion.div initial={{ opacity: 0, y: 10, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={SPRING}
       className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
@@ -92,8 +99,8 @@ function Bubble({ role, content, note }: { role: Msg['role']; content: string; n
         ? 'rounded-2xl rounded-br-md bg-teal-700 text-white'
         : 'rounded-2xl rounded-bl-md bg-white text-slate-800 ring-1 ring-slate-100'}`}>
         {!mine && <div className="mb-1 flex items-center gap-1 text-[11px] font-semibold text-teal-700"><Icon name="shield" className="h-3 w-3" />Qaqpan</div>}
-        {rich(content)}
-        {note && <div className="mt-1 text-[10px] text-slate-400">{note}</div>}
+        {rich(text)}
+        {note && text.length === content.length && <div className="mt-1 text-[10px] text-slate-400">{note}</div>}
       </div>
     </motion.div>
   )
