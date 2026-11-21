@@ -41,7 +41,7 @@ except ImportError:  # pragma: no cover
 CACHE_DIR = ROOT / "data" / "llm_cache"
 BASE_URL = os.getenv("XKIRO_BASE_URL", "https://api.xkiro.com/v1").rstrip("/")
 MODEL = os.getenv("XKIRO_MODEL", "mistralai/mistral-medium-3.5")
-TIMEOUT_S = float(os.getenv("QAQPAN_LLM_TIMEOUT", "25"))
+TIMEOUT_S = float(os.getenv("QAQPAN_LLM_TIMEOUT", "12"))  # a screenshot takes ~7 s; a juror must not wait 25
 # Spend/abuse guard for a public link: beyond these limits answers come from rules/templates.
 RPM = int(os.getenv("QAQPAN_LLM_RPM", "20"))
 DAILY = int(os.getenv("QAQPAN_LLM_DAILY", "500"))

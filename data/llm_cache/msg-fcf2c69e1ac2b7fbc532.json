@@ -1,0 +1,8 @@
+{
+  "verdict": "safe",
+  "confidence": 1.0,
+  "scheme": "none",
+  "reasons": [],
+  "advice": "Это обычное уведомление, можно ответить",
+  "extracted_text": "Уточните адрес доставки"
+}
