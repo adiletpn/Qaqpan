@@ -118,6 +118,8 @@ class Transfer:
     pressure: bool = False  # made during a call or within 30 min after it
     release_at: float | None = None  # «Отложить на час»: when the delayed transfer goes out by itself
     analysis: dict | None = None     # what Qaqpan concluded during the hour: verdict + approved reason codes
+    analyst_note: dict | None = None # a short summary for the bank's antifraud analyst (staff only, free AI text)
+    decided_by_bank: str | None = None
 
 
 @dataclass

@@ -415,3 +415,53 @@ def test_family_code_word_is_suggested_for_the_relative_scheme():
     assert c.get("/api/phone/erzhan").json()["shield"]["codeword"] is True  # the son shares it
     r = c.post("/api/messages/check", json={"client_id": "aigerim", "text": text, "lang": "ru"}).json()
     assert "кодовое слово" in r["tip"] and "Не знает" in r["tip"]
+
+
+# ---------------------------------------------------------------- the bank's antifraud console
+
+def full_scenario():
+    """Aigerim is stopped under a call, the son declines, she complains; Madina then pays the same account."""
+    tr = scam_transfer_to_family()
+    rid = c.get("/api/phone/erzhan").json()["family_requests"][0]["id"]
+    c.post(f"/api/family/requests/{rid}/decision", json={"client_id": "erzhan", "approve": False})
+    c.post("/api/complaints", json={"client_id": "aigerim", "transfer_id": tr["id"]})
+    m = send(150_000, SCAM, "madina")
+    return c.post(f"/api/transfers/{m['id']}/answers", json={"answers": [True, True, False]}).json()
+
+
+def test_console_finds_the_drop_account_and_queues_the_stopped_transfer():
+    held = full_scenario()
+    con = c.get("/api/bank/console").json()
+    drop = next(d for d in con["drops"] if "1934" in d["display"])
+    assert drop["label"] == "drop" and drop["senders"] == 2 and drop["inflow"] == 1_050_000
+    assert any("разных клиентов" in s for s in drop["signals"])
+    q = con["queue"][0]
+    assert q["id"] == held["id"] and q["status"] == "held" and q["note"]["text"]
+    assert con["stats"]["saved"] == 1_050_000 and con["stats"]["drops"] == 1
+
+
+def test_unusual_amount_for_this_client():
+    on_call()
+    tr = send(900_000)
+    assert any("раз больше ваших обычных трат" in r for r in tr["reasons"])
+    item = c.get("/api/bank/console").json()
+    assert item is not None
+
+
+def test_analyst_blocks_and_the_account_is_confirmed_for_everyone():
+    on_call()
+    tr = send(900_000)
+    tr = c.post(f"/api/transfers/{tr['id']}/answers", json={"answers": [True, False, False]}).json()
+    assert tr["status"] == "held"
+    assert c.post(f"/api/bank/transfers/{tr['id']}/decision", json={"action": "block"}).json()["status"] == "cancelled"
+    notice = c.get("/api/phone/aigerim").json()["notices"][-1]
+    assert "заблокировал" in notice["body"] or "бұғаттады" in notice["body"]
+    m = send(100_000, SCAM, "madina")
+    assert m["status"] == "questions" and "жалоб" in m["message"]
+
+
+def test_analyst_can_release_a_delayed_transfer():
+    tr = warning_transfer()
+    c.post(f"/api/transfers/{tr['id']}/delay")
+    assert c.post(f"/api/bank/transfers/{tr['id']}/decision", json={"action": "release"}).json()["status"] == "completed"
+    assert c.post(f"/api/bank/transfers/{tr['id']}/decision", json={"action": "block"}).status_code == 409

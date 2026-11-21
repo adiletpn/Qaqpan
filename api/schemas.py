@@ -83,6 +83,10 @@ class RecipientCheck(BaseModel):
     account: str = Field(min_length=6, max_length=40)
 
 
+class BankDecision(BaseModel):
+    action: Literal["release", "block"]
+
+
 class CodewordRequest(BaseModel):
     agreed: bool
 

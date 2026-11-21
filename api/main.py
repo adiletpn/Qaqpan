@@ -20,9 +20,9 @@ from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Re
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import assistant, delay, director, family, llm, msgcheck, schemes, victim
+from . import assistant, bank, delay, director, family, llm, msgcheck, schemes, victim
 from .risk import assess
-from .schemas import (AnswersRequest, AssistantRequest, CallVerifyRequest, CallVerifyResult, CheckResult, CodewordRequest,
+from .schemas import (AnswersRequest, AssistantRequest, BankDecision, CallVerifyRequest, CallVerifyResult, CheckResult, CodewordRequest,
                       ComplaintRequest, ComplaintResult, FamilyDecision, MessageCheckRequest, NativeCallSignal, Question,
                       RecipientCheck, TransferRequest, TransferView, VictimHelp, VictimRequest)
 from .state import (BANK_NUMBER, DELAY_S, FAMILY_TIMEOUT_S, NATIVE_NUMBER, SANDBOX_ID, STATE, Call, Client, FamilyLink,
@@ -384,8 +384,10 @@ def create_transfer(req: TransferRequest) -> TransferView:
         acc = STATE.account(req.account)
         on_call, recent_call = STATE.pressure(c.id)
         known = STATE.is_known(c.id, acc.number, now)
+        st = current()
         a = assess(c, acc, req.amount, on_call, req.context.pasted, req.context.app_switches,
-                   recent_call=recent_call, known=known, loan=c.loan, ts=now)
+                   recent_call=recent_call, known=known, loan=c.loan, ts=now,
+                   typical=bank.typical_spend(st, c.id), drop=bank.drop_profile(st, acc.number, now)["score"])
         # family shield: a new recipient (or her own card in another bank under pressure — the usual first hop) and
         # >= the limit in 24 h — splitting into parts, hanging up first or a test transfer of 100 ₸ does not help
         link = STATE.link_for_ward(c.id)
@@ -659,6 +661,50 @@ def complain(req: ComplaintRequest) -> ComplaintResult:
         return ComplaintResult(message=t("complaint.done" if confirmed else "complaint.signal", c.lang),
                                account_complaints=acc.complaints,
                                confirmed=confirmed, number_flagged=number)
+
+
+# ---------------------------------------------------------------------------- the bank's antifraud console
+
+@app.get("/api/bank/console")
+def bank_console() -> dict:
+    """What an analyst at the bank sees: the queue, drop accounts, AI summaries. Staff-only view in production."""
+    with STATE.lock:
+        STATE.expire_family()
+        STATE.release_delayed()
+        return bank.console(current())
+
+
+@app.post("/api/bank/transfers/{tid}/decision")
+def bank_decision(tid: str, req: BankDecision) -> dict:
+    """The analyst releases or blocks a stopped transfer. Blocking confirms the recipient for everyone."""
+    with STATE.lock:
+        tr = _transfer(tid)
+        if tr.status not in bank.ACTIVE:
+            raise HTTPException(409, f"Перевод уже в статусе {tr.status}")
+        c = STATE.clients[tr.client_id]
+        _withdraw_family(tr)
+        tr.decided_by_bank = req.action
+        if req.action == "release":
+            if tr.amount > c.balance:
+                tr.status, tr.note = "cancelled", "insufficient"
+            else:
+                c.balance -= tr.amount
+                tr.status = "completed"
+                STATE.first_paid.setdefault((c.id, tr.account), time.time())
+            STATE.emit("bank", c.id, f"Аналитик банка разрешил перевод {_fmt(tr.amount)} ({c.short})")
+        else:
+            tr.status = "cancelled"
+            STATE.mark_saved(tr)
+            acc = STATE.accounts[tr.account]
+            if ("bank", acc.number) not in STATE.confirmed_by:
+                STATE.confirmed_by.add(("bank", acc.number))
+                acc.complaints += 1
+            STATE.emit("bank", c.id, f"Аналитик банка заблокировал перевод {_fmt(tr.amount)} ({c.short}) — счёт "
+                       f"{acc.display} помечен для всех", step="received", stopped=True)
+        key = "bank.released" if req.action == "release" else "bank.blocked"
+        STATE.notify(c.id, "info", {"ru": "Банк · Служба безопасности", "kk": "Банк · Қауіпсіздік қызметі"},
+                     {lang: t(key, lang, amount=_fmt(tr.amount)) for lang in ("ru", "kk")}, ref=tr.id)
+        return {"status": tr.status}
 
 
 # ---------------------------------------------------------------------------- help

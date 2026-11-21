@@ -24,7 +24,9 @@ WEIGHTS = {
     "PASTED": 0.05,
     "APP_SWITCH": 0.1,      # >= 2 switches to another app while filling the form
     "OWN_OTHER_BANK": 0.15,  # «move it to your own card in another bank first» during a call
-    "LOAN_FRESH": 0.35,     # >= half of a loan issued < 72 h ago goes to a new recipient («оформите кредит и переведите»)
+    "LOAN_FRESH": 0.35,
+    "UNUSUAL_AMOUNT": 0.15,   # >= 5x the client's usual spending, to a new recipient (behavioural baseline)
+    "RECIPIENT_DROP": 0.25,   # the bank's drop detector: money from several clients in 24 h, complaints, a fresh account     # >= half of a loan issued < 72 h ago goes to a new recipient («оформите кредит и переведите»)
     "KNOWN_RECIPIENT": -0.3,  # not applied during a call: scammers use the victim's own accounts as a first hop
 }
 LEVEL_WARN = 0.3
@@ -48,7 +50,8 @@ class Assessment:
 
 def assess(client: Client, acc: Account, amount: float, on_call: bool, pasted: bool, app_switches: int,
            now: datetime | None = None, *, recent_call: bool = False, known: bool | None = None,
-           loan: tuple[float, float] | None = None, ts: float | None = None) -> Assessment:
+           loan: tuple[float, float] | None = None, ts: float | None = None, typical: float | None = None,
+           drop: float = 0.0) -> Assessment:
     """recent_call: a call ended less than 30 min ago; known: recipient paid before the last 24 h (computed by the
     caller from the session; defaults to the client's long-standing recipients); loan: (amount, issued_ts)."""
     now = now or local_now()
@@ -80,6 +83,11 @@ def assess(client: Client, acc: Account, amount: float, on_call: bool, pasted: b
         add("NEW_RECIPIENT")
     elif not pressure:
         add("KNOWN_RECIPIENT")
+    if typical and not known and amount >= 5 * typical:
+        add("UNUSUAL_AMOUNT")
+        kw["x"] = round(amount / typical)
+    if drop >= 0.6:
+        add("RECIPIENT_DROP")
     if loan and not known and ts is not None and ts - loan[1] < LOAN_FRESH_S and amount >= 0.5 * loan[0]:
         add("LOAN_FRESH")
     share = amount / client.balance if client.balance > 0 else 1.0
