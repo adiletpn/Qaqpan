@@ -5,6 +5,8 @@ import { Device, DEVICE_H, DEVICE_W } from '../phone/Device'
 import Starfield from '../Starfield'
 import { Icon } from '../ui'
 import { setTheme, useTheme } from '../theme'
+import { StageQr } from '../Telegram'
+import { AnimatePresence } from 'framer-motion'
 import { ACTIONS, STEPS, useDirectorHotkeys, useStage } from './shared'
 
 const PHONES = [
@@ -67,12 +69,14 @@ export default function Stage() {
   useDirectorHotkeys(setWarn)
   useEffect(() => { if (!warn) return; const t = setTimeout(() => setWarn(null), 4000); return () => clearTimeout(t) }, [warn])
   const [help, setHelp] = useState(false)
+  const [qr, setQr] = useState(false)
   const theme = useTheme()
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.tagName === 'INPUT' || (e.target as HTMLElement)?.tagName === 'TEXTAREA') return
       if (e.key === '?' || e.code === 'KeyH') setHelp(v => !v)
       if (e.code === 'KeyT' && !e.metaKey && !e.ctrlKey) setTheme(theme === 'bcc' ? 'default' : 'bcc')
+      if (e.code === 'KeyQ' && !e.metaKey && !e.ctrlKey) setQr(v => !v)
     }
     window.addEventListener('keydown', h)
     return () => window.removeEventListener('keydown', h)
@@ -136,10 +140,12 @@ export default function Stage() {
           {ACTIONS.map(a => (
             <div key={a.key} className="flex gap-3 py-0.5"><kbd className="w-6 text-center font-mono text-emerald-400">{a.key}</kbd><span className="text-slate-300">{a.title}</span></div>
           ))}
+          <div className="flex gap-3 py-0.5"><kbd className="w-6 text-center font-mono text-emerald-400">Q</kbd><span className="text-slate-300">QR: член жюри становится сыном в своём Telegram</span></div>
           <div className="flex gap-3 py-0.5"><kbd className="w-6 text-center font-mono text-emerald-400">T</kbd><span className="text-slate-300">Стиль BCC / свой стиль телефонов</span></div>
         </div>
       )}
 
+      <AnimatePresence>{qr && <StageQr key="qr" onClose={() => setQr(false)} />}</AnimatePresence>
       <footer className="relative z-10 mt-2 flex h-[84px] shrink-0 flex-col-reverse justify-start gap-0.5 overflow-hidden text-base">
         {events.map((e, i) => (
           <div key={e.seq} className={`flex min-w-0 items-center gap-2 transition-opacity ${i === 0 ? 'text-white' : 'text-slate-500'}`}>

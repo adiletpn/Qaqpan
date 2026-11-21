@@ -11,6 +11,7 @@ Layers (docs/DEMO_SCENARIO.md):
 from __future__ import annotations
 
 import hmac
+from contextlib import asynccontextmanager
 import logging
 import os
 import time
@@ -20,7 +21,7 @@ from fastapi import BackgroundTasks, Depends, FastAPI, Header, HTTPException, Re
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import assistant, bank, delay, director, family, llm, msgcheck, schemes, victim
+from . import assistant, bank, delay, director, family, llm, msgcheck, schemes, tgbot, victim
 from .risk import assess
 from .schemas import (AnswersRequest, AssistantRequest, BankDecision, CallVerifyRequest, CallVerifyResult, CheckResult, CodewordRequest,
                       ComplaintRequest, ComplaintResult, FamilyDecision, MessageCheckRequest, NativeCallSignal, Question,
@@ -33,7 +34,13 @@ logging.basicConfig(level=logging.INFO)
 ROOT = Path(__file__).resolve().parent.parent
 WEB_DIST = ROOT / "web" / "dist"
 
-app = FastAPI(title="Qaqpan API", version="1.2.0")
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    tgbot.start()  # Telegram bot (only when TELEGRAM_BOT_TOKEN is set)
+    yield
+
+
+app = FastAPI(title="Qaqpan API", version="1.3.0", lifespan=lifespan)
 
 
 class SandboxMiddleware:
@@ -214,7 +221,9 @@ def _hold(tr: Transfer, c: Client, text: str) -> None:
 def health() -> dict:
     return {"status": "ok", "version": app.version, "llm": llm.status(),
             "director_protected": bool(os.getenv("QAQPAN_DIRECTOR_KEY")), "locked": os.getenv("QAQPAN_LOCK") == "1",
-            "idle_reset_min": float(os.getenv("QAQPAN_IDLE_RESET_MIN", "0") or 0), "shadow": SHADOW()}
+            "idle_reset_min": float(os.getenv("QAQPAN_IDLE_RESET_MIN", "0") or 0), "shadow": SHADOW(),
+            "telegram": tgbot.status()}
+
 
 
 @app.get("/api/clients")

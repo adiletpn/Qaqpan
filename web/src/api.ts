@@ -139,6 +139,7 @@ export const api = {
   proceed: (id: string) => req<TransferView>(`/api/transfers/${id}/proceed`, {}),
   delay: (id: string) => req<TransferView>(`/api/transfers/${id}/delay`, {}),
   checkRecipient: (client_id: string, account: string) => req<RecipientCheck>('/api/recipients/check', { client_id, account }),
+  health: () => req<{ telegram?: { enabled: boolean; username: string | null } }>('/api/health'),
   bankConsole: () => req<BankConsoleData>('/api/bank/console'),
   bankDecision: (id: string, action: 'release' | 'block') => req<{ status: string }>(`/api/bank/transfers/${id}/decision`, { action }),
   codeword: (client_id: string, agreed: boolean) => req<{ agreed: boolean }>(`/api/family/${client_id}/codeword`, { agreed }),

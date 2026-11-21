@@ -6,6 +6,7 @@ import BankApp from '../phone/BankApp'
 import { BankConsole } from './BankConsole'
 import { Device, DEVICE_H } from '../phone/Device'
 import Starfield from '../Starfield'
+import { TelegramButton, TelegramCard } from '../Telegram'
 import { Icon } from '../ui'
 import { useStage } from './shared'
 
@@ -128,6 +129,7 @@ export default function Try() {
   const [rect, setRect] = useState<Box | null>(null)
   const [busy, setBusy] = useState(false)
   const [epoch, setEpoch] = useState(0)
+  const [sid, setSid] = useState<string | null>(null)
   const roots = useRef<Record<Profile, HTMLDivElement | null>>({ aigerim: null, erzhan: null, madina: null, bank: null })
   const { stage } = useStage(1500)
   const vp = useViewport()
@@ -136,7 +138,7 @@ export default function Try() {
 
   const begin = useCallback(async (fresh: boolean) => {
     setReady(false)
-    startSandbox(fresh)
+    setSid(startSandbox(fresh))
     try {
       await api.director('reset')
       await api.setLang('aigerim', 'ru')  // the juror reads Russian first; ҚАЗ is one tap away
@@ -150,7 +152,7 @@ export default function Try() {
   useEffect(() => {
     let seen = false
     try { seen = !!sessionStorage.getItem(TOUR_SEEN) } catch { /* ignore */ }
-    startSandbox()
+    setSid(startSandbox())
     if (seen) { setReady(true); return }
     void begin(true)
   }, [begin])
@@ -268,6 +270,7 @@ export default function Try() {
         </div>
       </main>
 
+      {desktop && <TelegramCard sandbox={sid} />}
       <AnimatePresence>
         {step && (
           <motion.div key="tour" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}
@@ -292,6 +295,7 @@ export default function Try() {
                   <p className="mt-1.5 text-[14px] leading-relaxed text-slate-600">{step.text}</p>
                 </motion.div>
               </AnimatePresence>
+              {i === 0 && !desktop && <TelegramButton sandbox={sid} className="mt-3" />}
               <div className="mt-3 flex gap-2">
                 {i! > 0 && i! < STEPS.length - 1 && (
                   <button onClick={() => setI(i! - 1)} className="rounded-2xl px-4 py-2.5 text-sm font-semibold text-slate-600 ring-1 ring-slate-200 active:scale-[0.97]">Назад</button>

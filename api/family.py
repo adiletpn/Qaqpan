@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import time
 
+from . import tgbot
 from .state import SHIELD_DISABLE_DELAY_S, STATE, FamilyLink, FamilyRequest, Transfer
 
 Lang = str
@@ -127,6 +128,7 @@ def notify_request(fr: FamilyRequest) -> None:
                  {"ru": f"{link.ward_title_acc['ru']}, возможно, обманывают. Перевод {amount} остановлен до вашего решения",
                   "kk": f"{link.ward_title_acc['kk']} алаяқтар алдауы мүмкін. {amount} аударым сіздің шешіміңізге дейін тоқтатылды"},
                  ref=fr.id)
+    tgbot.push_family_request(request_view(fr, "ru"))  # the son's real Telegram, when linked in the demo
 
 
 def notify_confirmed(ward_id: str, tr: Transfer) -> None:
@@ -140,6 +142,8 @@ def notify_confirmed(ward_id: str, tr: Transfer) -> None:
                   "kk": f"{link.ward_title['kk']} қысым белгілерін растады. {amount} аударым тоқтатылды, оны банк "
                         f"тексереді. {link.ward_title_dat['kk'].capitalize()} әдеттегі нөміріне қоңырау шалыңыз."},
                  ref=tr.id)
+    tgbot.push_text(f"{link.ward_title['ru']} подтвердила признаки давления. Перевод {amount} остановлен, им занимается банк. "
+                    f"Позвоните {link.ward_title_dat['ru']} на обычный номер.")
 
 
 def shield_info(cid: str, lang: Lang) -> dict:
@@ -166,6 +170,8 @@ def notify_delayed(ward_id: str, tr: Transfer) -> None:
                   "kk": f"{link.ward_title['kk']} {amount} аударымды бір сағатқа қалдырды — Qaqpan күмәнданды. "
                         f"{link.ward_title_dat['kk'].capitalize()} қоңырау шалып, асықпай сөйлесуге болады."},
                  ref=tr.id)
+    tgbot.push_text(f"{link.ward_title['ru']} отложила перевод {amount} на час — Qaqpan засомневался. Можно позвонить "
+                    f"{link.ward_title_dat['ru']} и спокойно обсудить.")
 
 
 def request_disable(ward_id: str) -> FamilyLink:
@@ -180,6 +186,8 @@ def request_disable(ward_id: str) -> FamilyLink:
                       "kk": f"{link.ward_title['kk']} отбасылық қалқанды өшіріп жатыр — ол 24 сағаттан кейін өшеді. "
                             f"Мұны телефонмен бейтаныс адам сұраса, {link.ward_title_dat['kk']} қоңырау шалыңыз."},
                      ref=ward_id)
+        tgbot.push_text(f"{link.ward_title['ru']} отключает семейный щит — он выключится через 24 часа. Если об этом "
+                        f"просил незнакомец по телефону, позвоните {link.ward_title_dat['ru']}.")
         STATE.alert(ward_id, "Запрос на отключение семейного щита", "Отбасылық қалқанды өшіру сұрауы")
         STATE.emit("shield", ward_id, f"{ward.short} отключает щит — выключится только через 24 часа, "
                    f"{STATE.clients[link.guardian_id].short} получил(а) уведомление")
