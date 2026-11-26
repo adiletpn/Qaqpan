@@ -113,114 +113,189 @@ export function BankConsole({ compact = false }: { compact?: boolean }) {
   )
 }
 
-function Kpi({ label, value, tone = '' }: { label: string; value: string; tone?: string }) {
+// hairlines come from the 1px gap over a tinted grid, so the 2×2 and 1×4 layouts both draw clean dividers
+function Stat({ label, value, accent, danger }: { label: string; value: string; accent?: boolean; danger?: boolean }) {
   return (
-    <div className="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-slate-200/70">
-      <div className={`text-xl font-black tabular-nums ${tone}`}>{value}</div>
-      <div className="text-[11px] text-slate-500">{label}</div>
+    <div className="min-w-0 bg-white px-4 py-4">
+      <p className="truncate text-[12px] text-[#737373]">{label}</p>
+      <p className={`mt-2 truncate text-[20px] font-medium leading-none tabular-nums sm:text-[24px] ${accent ? 'text-teal-700' : danger ? 'text-red-600' : ''}`}>{value}</p>
     </div>
   )
 }
 
-function Section({ title, hint, children }: { title: string; hint: string; children: React.ReactNode }) {
+function Block({ title, meta, children }: { title: string; meta?: string; children: ReactNode }) {
   return (
-    <div>
-      <div className="mb-2 flex items-baseline gap-2 px-1"><span className="text-sm font-bold">{title}</span><span className="truncate text-[11px] text-slate-400">{hint}</span></div>
-      <div className="space-y-2">{children}</div>
-    </div>
+    <section>
+      <div className="mb-3 flex items-baseline gap-2">
+        <h2 className="text-[15px] font-medium">{title}</h2>
+        {meta && <span className="font-mono text-[12px] text-[#737373]">{meta}</span>}
+      </div>
+      {children}
+    </section>
   )
 }
 
-const Empty = ({ text }: { text: string }) => <div className="rounded-2xl bg-white/60 p-4 text-center text-sm text-slate-400 ring-1 ring-slate-200/70">{text}</div>
+const Empty = ({ text }: { text: string }) => (
+  <div className="rounded-xl border border-dashed border-black/[0.12] px-4 py-6 text-center text-[13px] text-[#737373]">{text}</div>
+)
 
-function DropCard({ d }: { d: DropProfile }) {
+// The moment of the screen: where the money comes from, drawn as a flow into one account
+function Dossier({ d, compact }: { d: DropProfile; compact: boolean }) {
+  const flows = d.flows ?? []
   const drop = d.label === 'drop'
+  const rowH = 44
+  const h = Math.max(1, flows.length) * rowH
   return (
-    <motion.div layout data-tour="drop-card" className={`rounded-2xl bg-white p-3 shadow-sm ring-1 ${drop ? 'ring-red-200' : 'ring-amber-200'}`}>
-      <div className="flex items-center gap-2">
-        <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${drop ? 'bg-red-600 text-white' : 'bg-amber-100 text-amber-900'}`}>{drop ? 'Вероятный дроп' : 'Под наблюдением'}</span>
-        <span className="truncate font-mono text-xs text-slate-500">{d.display}</span>
-        <span className="ml-auto text-sm font-black tabular-nums">{Math.round(d.score * 100)}</span>
+    <div data-tour="drop-card" className="rounded-2xl border border-black/[0.08] bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+      <div className="flex items-center justify-between gap-3">
+        <p className={`flex items-center gap-2 text-[13px] font-medium ${drop ? 'text-red-600' : 'text-amber-700'}`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${drop ? 'bg-red-600' : 'bg-amber-500'}`} />
+          {drop ? 'Вероятный дроп' : 'Под наблюдением'}
+        </p>
+        <p className="font-mono text-[13px] tabular-nums text-[#525252]"><span className="text-[#171717]">{pct(d.score)}</span>/100</p>
       </div>
-      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
-        <motion.div className={`h-full rounded-full ${drop ? 'bg-red-500' : 'bg-amber-400'}`} initial={{ width: 0 }} animate={{ width: `${d.score * 100}%` }} transition={{ duration: 0.6, ease: EASE }} />
+      <div className="mt-2 h-1 overflow-hidden rounded-full bg-black/[0.06]">
+        <div className={`h-full rounded-full ${drop ? 'bg-red-600' : 'bg-amber-500'}`} style={{ width: `${pct(d.score)}%` }} />
       </div>
-      <div className="mt-2 text-xs text-slate-600">{d.holder} · {bankName(d.bank)}{d.attempts > 0 && <> · входящие за сутки: <b>{money(d.inflow)}</b> от {d.senders} клиент{d.senders === 1 ? 'а' : 'ов'}</>}</div>
-      <ul className="mt-1.5 space-y-0.5 text-xs text-slate-500">{d.signals.map(s => <li key={s}>• {s}</li>)}</ul>
-    </motion.div>
+
+      {flows.length > 0 ? (
+        <div className={`mt-5 grid items-center ${compact ? 'grid-cols-[minmax(0,1fr)_32px_minmax(0,1.3fr)]' : 'grid-cols-[minmax(0,1fr)_32px_minmax(0,1.3fr)] sm:grid-cols-[minmax(0,1fr)_64px_minmax(0,1fr)]'}`}>
+          <div>
+            {flows.map(f => (
+              <div key={f.name} className="flex h-11 flex-col justify-center">
+                <p className="truncate text-[13px] text-[#525252]">{f.name}</p>
+                <p className="font-mono text-[14px] tabular-nums">{money(f.amount)}</p>
+              </div>
+            ))}
+          </div>
+          <svg viewBox={`0 0 64 ${h}`} preserveAspectRatio="none" className="w-full" style={{ height: h }} aria-hidden>
+            {flows.map((_, k) => {
+              const y = k * rowH + rowH / 2
+              return <path key={k} d={`M0 ${y} C 32 ${y}, 32 ${h / 2}, 60 ${h / 2}`} fill="none" stroke={drop ? '#dc2626' : '#d97706'}
+                strokeOpacity="0.55" strokeWidth="1.5" vectorEffect="non-scaling-stroke" />
+            })}
+            <circle cx="61" cy={h / 2} r="2.5" fill={drop ? '#dc2626' : '#d97706'} />
+          </svg>
+          <div className="min-w-0 rounded-xl bg-[#f4f4f5] px-3 py-3">
+            <p className="truncate font-mono text-[13px] tabular-nums">{masked(d.display)}</p>
+            <p className="mt-1 truncate text-[12px] text-[#737373]">{d.holder} · {bankName(d.bank)}</p>
+            <p className="mt-2 truncate font-mono text-[13px] tabular-nums text-red-600">{money(d.inflow)}</p>
+            <p className="text-[12px] text-[#737373]">за сутки от {d.senders} клиент{d.senders === 1 ? 'а' : 'ов'}</p>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-4">
+          <p className="font-mono text-[14px] tabular-nums">{masked(d.display)}</p>
+          <p className="mt-1 text-[12px] text-[#737373]">{d.holder} · {bankName(d.bank)}</p>
+        </div>
+      )}
+
+      <ul className="mt-4 space-y-1 border-t border-black/[0.06] pt-3 text-[13px] text-[#525252]">
+        {d.signals.map(s => <li key={s}>{s}</li>)}
+      </ul>
+    </div>
+  )
+}
+
+function WatchRow({ d }: { d: DropProfile }) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3">
+      <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${d.label === 'drop' ? 'bg-red-600' : 'bg-amber-500'}`} />
+      <div className="min-w-0 flex-1">
+        <p className="font-mono text-[13px] tabular-nums">{masked(d.display)}</p>
+        <p className="truncate text-[12px] text-[#737373]">{d.signals[0] ?? d.holder}</p>
+      </div>
+      <p className="font-mono text-[13px] tabular-nums text-[#525252]">{pct(d.score)}</p>
+    </div>
   )
 }
 
 function Row({ i, on, onClick }: { i: BankItem; on: boolean; onClick: () => void }) {
-  const st = STATUS[i.status] ?? { label: i.status, tone: 'bg-slate-100' }
+  const st = STATUS[i.status] ?? { label: i.status, dot: 'bg-neutral-300' }
   return (
-    <button onClick={onClick} className={`flex w-full items-center gap-3 rounded-2xl bg-white p-3 text-left shadow-sm ring-1 transition ${on ? 'ring-2 ring-slate-900' : 'ring-slate-200/70 hover:ring-slate-300'}`}>
-      <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl text-xs font-black ${i.score >= 0.5 ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'}`}>{Math.round(i.score * 100)}</span>
+    <button onClick={onClick}
+      className={`flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition-colors duration-150 ${on
+        ? 'border-black/[0.08] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]' : 'border-transparent hover:bg-black/[0.03]'}`}>
+      <span className={`w-8 shrink-0 font-mono text-[13px] tabular-nums ${i.score >= 0.5 ? 'text-red-600' : 'text-[#525252]'}`}>{pct(i.score)}</span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-semibold">{i.client.name} · {money(i.amount)}</span>
-        <span className="block truncate text-xs text-slate-500">{time(i.ts)} → {i.recipient.display}</span>
+        <span className="block truncate text-[14px]">{i.client.name}</span>
+        <span className="block truncate font-mono text-[12px] tabular-nums text-[#737373]">{time(i.ts)} · {masked(i.recipient.display)}</span>
       </span>
-      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${st.tone}`}>{st.label}</span>
+      <span className="shrink-0 text-right">
+        <span className="block font-mono text-[14px] tabular-nums">{money(i.amount)}</span>
+        <span className="flex items-center justify-end gap-1.5 text-[12px] text-[#525252]"><span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} />{st.label}</span>
+      </span>
     </button>
   )
 }
 
 function Detail({ i, busy, onDecide }: { i: BankItem; busy: boolean; onDecide: (id: string, a: 'release' | 'block') => void }) {
-  const st = STATUS[i.status] ?? { label: i.status, tone: 'bg-slate-100' }
+  const st = STATUS[i.status] ?? { label: i.status, dot: 'bg-neutral-300' }
   const active = ['held', 'escalated', 'delayed', 'awaiting_family'].includes(i.status)
+  const facts: [string, string, boolean?][] = [
+    ['Риск', `${pct(i.score)}/100`, i.score >= 0.5],
+    ...(i.unusual_x && i.unusual_x >= 5 ? [['Норма клиента', `в ${i.unusual_x} раз больше обычных трат`] as [string, string]] : []),
+    ...(i.drop.label === 'drop' ? [['Получатель', 'вероятный дроп', true] as [string, string, boolean]] : []),
+    ...(i.family ? [['Семья', FAMILY[i.family] ?? i.family] as [string, string]] : []),
+    ...(i.delay ? [['Вывод за час', DELAY[i.delay] ?? i.delay, i.delay === 'likely_scam'] as [string, string, boolean]] : []),
+    ...(i.decided_by_bank ? [['Решение аналитика', i.decided_by_bank === 'block' ? 'заблокирован' : 'разрешён'] as [string, string]] : []),
+  ]
   return (
-    <div className="rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-200/70" data-tour="bank-detail">
-      <div className="flex items-start gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="text-xs text-slate-500">{i.client.name}, {i.client.age} лет · {i.client.city}</div>
-          <div className="text-2xl font-black tabular-nums">{money(i.amount)}</div>
-          <div className="truncate text-sm text-slate-600">→ {i.recipient.display} · {i.recipient.holder} · {bankName(i.recipient.bank)}</div>
+    <div data-tour="bank-detail" className="rounded-2xl border border-black/[0.08] bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-[13px] text-[#525252]">{i.client.name}, {i.client.age} лет · {i.client.city}</p>
+          <p className="mt-2 text-[28px] font-medium leading-none tabular-nums sm:text-[32px]">{money(i.amount)}</p>
+          <p className="mt-2 truncate text-[13px] text-[#525252]"><span className="font-mono tabular-nums">→ {masked(i.recipient.display)}</span> · {i.recipient.holder} · {bankName(i.recipient.bank)}</p>
         </div>
-        <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${st.tone}`}>{st.label}</span>
+        <p className="flex shrink-0 items-center gap-1.5 pt-1 text-[13px] text-[#525252]"><span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} />{st.label}</p>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        <Chip tone="bg-slate-900 text-white">риск {Math.round(i.score * 100)}</Chip>
-        {i.unusual_x && i.unusual_x >= 5 && <Chip tone="bg-violet-100 text-violet-900">в {i.unusual_x} раз больше обычных трат</Chip>}
-        {i.drop.label === 'drop' && <Chip tone="bg-red-100 text-red-800">получатель — вероятный дроп</Chip>}
-        {i.family && <Chip tone="bg-teal-100 text-teal-900">{FAMILY[i.family] ?? i.family}</Chip>}
-        {i.delay && <Chip tone="bg-sky-100 text-sky-900">вывод за час: {DELAY[i.delay] ?? i.delay}</Chip>}
-        {i.decided_by_bank && <Chip tone="bg-slate-100 text-slate-700">решение аналитика: {i.decided_by_bank === 'block' ? 'заблокирован' : 'разрешён'}</Chip>}
+      <div data-tour="bank-note" className="mt-5 border-l-2 border-teal-700 pl-4">
+        <p className="flex items-center gap-2 text-[12px] text-[#737373]">
+          <Icon name="spark" className="h-3.5 w-3.5 text-teal-700" />Сводка ИИ для аналитика<span className="font-mono">· {i.note.source === 'rules' ? 'по правилам' : 'Mistral'}</span>
+        </p>
+        <p className="mt-1.5 max-w-[68ch] text-[15px] leading-[22px]">{i.note.text}</p>
       </div>
 
-      <div className="mt-4 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50 p-3 ring-1 ring-emerald-100" data-tour="bank-note">
-        <div className="mb-1 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-emerald-800">
-          <span className="rounded bg-emerald-700 px-1.5 py-0.5 text-[10px] text-white">ИИ</span>сводка для аналитика
-          <span className="ml-auto font-normal normal-case text-emerald-700/70">{i.note.source === 'rules' ? 'по правилам' : 'Mistral'}</span>
-        </div>
-        <p className="text-sm leading-relaxed text-slate-800">{i.note.text}</p>
-      </div>
+      <dl className="mt-5 grid grid-cols-[112px_minmax(0,1fr)] gap-x-4 gap-y-2 border-t border-black/[0.06] pt-4 text-[13px]">
+        {facts.map(([k, v, warn]) => (
+          <div key={k} className="contents">
+            <dt className="text-[#737373]">{k}</dt>
+            <dd className={warn ? 'text-red-600' : 'text-[#171717]'}>{v}</dd>
+          </div>
+        ))}
+      </dl>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+      <div className="mt-5 grid gap-5 border-t border-black/[0.06] pt-4 sm:grid-cols-2">
         <div>
-          <div className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-400">Причины</div>
-          <ul className="space-y-1 text-sm text-slate-700">{i.reasons.map(r => <li key={r}>• {r}</li>)}</ul>
+          <p className="mb-2 text-[12px] text-[#737373]">Причины</p>
+          <ul className="space-y-1.5 text-[13px] text-[#525252]">{i.reasons.map(r => <li key={r}>{r}</li>)}</ul>
         </div>
         <div>
-          <div className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-400">Сессия клиента</div>
-          <ol className="space-y-1.5 border-l-2 border-slate-200 pl-3 text-sm">
-            {i.timeline.length === 0 && <li className="text-slate-400">событий нет</li>}
-            {i.timeline.map((e, k) => <li key={k} className="text-slate-700"><span className="mr-1.5 font-mono text-[11px] text-slate-400">{time(e.ts)}</span>{e.text}</li>)}
+          <p className="mb-2 text-[12px] text-[#737373]">Сессия клиента</p>
+          <ol className="space-y-1.5 text-[13px]">
+            {i.timeline.length === 0 && <li className="text-[#737373]">событий нет</li>}
+            {i.timeline.map((e, k) => (
+              <li key={k} className="grid grid-cols-[44px_minmax(0,1fr)] gap-2">
+                <span className="font-mono tabular-nums text-[#737373]">{time(e.ts)}</span><span className="text-[#525252]">{e.text}</span>
+              </li>
+            ))}
           </ol>
         </div>
       </div>
 
       {active && (
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          <button disabled={busy} onClick={() => onDecide(i.id, 'block')} className="rounded-2xl bg-red-600 py-3 text-sm font-semibold text-white transition active:scale-[0.98] disabled:opacity-50">Заблокировать</button>
-          <button disabled={busy} onClick={() => onDecide(i.id, 'release')} className="rounded-2xl bg-white py-3 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 transition active:scale-[0.98] disabled:opacity-50">Разрешить</button>
+        <div className="mt-6 grid grid-cols-2 gap-2">
+          <button disabled={busy} onClick={() => onDecide(i.id, 'block')}
+            className="h-11 rounded-[10px] bg-red-600 text-[14px] font-medium text-white transition-[transform,background-color] duration-150 hover:bg-red-700 active:scale-[0.98] disabled:opacity-50">Заблокировать</button>
+          <button disabled={busy} onClick={() => onDecide(i.id, 'release')}
+            className="h-11 rounded-[10px] border border-black/[0.08] bg-[#f4f4f5] text-[14px] font-medium transition-[transform,background-color] duration-150 hover:bg-[#ececee] active:scale-[0.98] disabled:opacity-50">Разрешить</button>
         </div>
       )}
     </div>
   )
 }
-
-const Chip = ({ tone, children }: { tone: string; children: React.ReactNode }) => <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${tone}`}>{children}</span>
 
 export default function BankPage() {
   return <div className="h-[100dvh]"><BankConsole /></div>
