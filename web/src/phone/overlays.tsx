@@ -109,7 +109,7 @@ export function VerifySheet({ result, lang, onClose }: { result: CallVerify; lan
       <div data-tour="verify-sheet">
       <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ ...SPRING, delay: 0.1 }}
         className={`mx-auto grid h-16 w-16 place-items-center rounded-full text-white ${tone}`}><Icon name={icon} className="h-8 w-8" /></motion.div>
-      <h3 className="mt-4 text-center text-xl font-bold">{result.title}</h3>
+      <h3 className="mt-4 text-center text-xl font-semibold">{result.title}</h3>
       <p className="mt-2 text-center text-sm text-slate-600">{result.message}</p>
       </div>
       <Button tour="verify-done" className="mt-5" tone={result.status === 'not_bank' ? 'danger' : 'primary'} onClick={onClose}>{tr(lang, 'done')}</Button>

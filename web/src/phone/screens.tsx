@@ -110,7 +110,7 @@ function Verdict({ res, lang }: { res: CheckResult; lang: Lang }) {
       <div className={`flex items-center gap-3 p-4 text-white ${cfg.bg}`}>
         <Icon name={cfg.icon} className="h-7 w-7" />
         <div>
-          <div className="text-lg font-bold">{cfg.label}</div>
+          <div className="text-lg font-semibold">{cfg.label}</div>
           {res.scheme_name && <div className="text-sm opacity-90">{res.scheme_name}</div>}
         </div>
       </div>
@@ -191,8 +191,8 @@ export function TransferScreen({ clientId, lang, prefill, balance, onBack, onDon
           <label className="text-xs font-semibold text-slate-500">{L('amount')}</label>
           <div className="mt-1 flex items-baseline gap-1">
             <input value={amount} onChange={e => setAmount(fmt(e.target.value))} inputMode="numeric" placeholder="0"
-              className="w-full border-0 p-0 text-3xl font-bold focus:outline-none focus:ring-0" />
-            <span className="text-2xl font-bold text-slate-400">₸</span>
+              className="w-full border-0 p-0 text-3xl font-semibold focus:outline-none focus:ring-0" />
+            <span className="text-2xl font-semibold text-slate-400">₸</span>
           </div>
           <div className="mt-2 text-xs text-slate-500">{L('balance')}: {money(balance)}</div>
           {prefill?.note && <div className="mt-2 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{prefill.note}</div>}
