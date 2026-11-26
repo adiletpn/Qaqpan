@@ -6,6 +6,9 @@
 
 Прототип для **ITU HACKATHON-2026 · FINTECH CASE** (кейсодатель — Банк ЦентрКредит).
 
+**Демо:** https://qaqpan-production.up.railway.app/try · **Видео (4:42):** https://youtu.be/c6zrhWADmwk ·
+**Презентация:** https://docs.google.com/presentation/d/1Ekk6mvp1pB-NMhT6pCJKDE_ci7jyuRvq5cOmDwksjco/edit?usp=sharing
+
 Любое мошенничество проходит четыре шага: **написали → позвонили → уговорили перевести → получили деньги**.
 Qaqpan ставит защиту на каждый шаг, и слои передают сигнал друг другу: то, что пропустил один, ловит следующий.
 
