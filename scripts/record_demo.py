@@ -191,8 +191,14 @@ def synth(out_dir: Path) -> dict[str, tuple[Path, float]]:
         if TTS == "edge" and Path(sys.executable).with_name("edge-tts").exists():
             path = out_dir / f"{key}.mp3"
             edge = Path(sys.executable).with_name("edge-tts")
-            subprocess.run([str(edge), "--voice", NEURAL_VOICE, "--rate=+4%", "--text", spoken_text(text),
-                            "--write-media", str(path)], check=True, capture_output=True)
+            for attempt in range(4):  # the online voice service drops a request now and then
+                r = subprocess.run([str(edge), "--voice", NEURAL_VOICE, "--rate=+4%", "--text", spoken_text(text),
+                                    "--write-media", str(path)], capture_output=True)
+                if r.returncode == 0 and path.exists() and path.stat().st_size > 1000:
+                    break
+                time.sleep(2 + attempt * 2)
+            else:
+                raise RuntimeError(f"voice clip {key} failed: {r.stderr.decode()[-300:]}")
         else:
             path = out_dir / f"{key}.aiff"
             subprocess.run(["say", "-v", VOICE, "-r", RATE, "-o", str(path), text], check=True)
