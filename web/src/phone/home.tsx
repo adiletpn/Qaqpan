@@ -3,6 +3,7 @@ import { api, money, type Lang, type Snapshot } from '../api'
 import { tr } from '../i18n'
 import { Icon } from '../ui'
 import type { Screen } from './BankApp'
+import { QUICK } from './quick'
 import { setLargeText, useLargeText } from '../theme'
 
 type K = Parameters<typeof tr>[1]
@@ -20,9 +21,9 @@ function when(ts: number, lang: Lang) {
   return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })
 }
 
-export function Home({ snap, lang, onNav, onVerify, onCheck, onToggleLang, onOpenRequest }: {
+export function Home({ snap, lang, onNav, onVerify, onCheck, onToggleLang, onOpenRequest, onAsk, onToday }: {
   snap: Snapshot; lang: Lang; onNav: (s: Screen) => void; onVerify: () => void; onCheck: (s: string | null) => void
-  onToggleLang: () => void; onOpenRequest: (id: string) => void
+  onToggleLang: () => void; onOpenRequest: (id: string) => void; onAsk: (q: string | null) => void; onToday: () => void
 }) {
   const large = useLargeText()
   const L = (k: K) => tr(lang, k)
@@ -30,10 +31,10 @@ export function Home({ snap, lang, onNav, onVerify, onCheck, onToggleLang, onOpe
   useEffect(() => { api.schemes(lang).then(setSchemes).catch(() => setSchemes([])) }, [lang])
 
   const actions = [
-    { icon: 'send', label: L('transfer'), on: () => onNav('transfer'), tone: 'bg-teal-700 text-white' },
-    { icon: 'msg', label: L('check_msg'), on: () => onCheck(null), tone: 'bg-white text-slate-700' },
-    { icon: 'phone', label: L('bank_calling'), on: onVerify, tone: 'bg-white text-slate-700' },
-    { icon: 'help', label: L('scammed'), on: () => onNav('victim'), tone: 'bg-white text-red-600' },
+    { icon: 'send', label: L('transfer'), on: () => onNav('transfer'), tone: 'bg-teal-700 text-white shadow-[0_6px_16px_-6px_rgba(15,118,110,0.6)]' },
+    { icon: 'msg', label: L('check_msg'), on: () => onCheck(null), tone: 'bg-teal-100 text-teal-800' },
+    { icon: 'phone', label: L('bank_calling'), on: onVerify, tone: 'bg-sky-100 text-sky-800' },
+    { icon: 'help', label: L('scammed'), on: () => onNav('victim'), tone: 'bg-red-100 text-red-600' },
   ]
   const shield = snap.shield
   const pending = snap.family_requests[0]
