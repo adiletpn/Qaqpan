@@ -193,7 +193,7 @@ export function FamilyScreen({ clientId, lang, shield, onBack, onChanged }: { cl
         {shield.role === 'guardian' && shield.wards.map(w => (
           <Card key={w.ward_id}>
             <div className="text-xs text-slate-500">{L('you_protect')}</div>
-            <div className="text-lg font-bold">{w.title} · {w.name}</div>
+            <div className="text-lg font-semibold">{w.title} · {w.name}</div>
             <div className="mt-1 text-sm text-slate-600">{limitLine(lang, w.limit)}</div>
             {w.disable_at && (
               <div className="mt-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-900 ring-1 ring-amber-200">
@@ -205,7 +205,7 @@ export function FamilyScreen({ clientId, lang, shield, onBack, onChanged }: { cl
         ))}
         {shield.role === 'none' && (
           <Card>
-            <div className="text-lg font-bold">{L('connect_close')}</div>
+            <div className="text-lg font-semibold">{L('connect_close')}</div>
           </Card>
         )}
 
@@ -223,7 +223,7 @@ export function FamilyScreen({ clientId, lang, shield, onBack, onChanged }: { cl
         )}
 
         <Card>
-          <div className="flex items-center gap-2 font-bold"><Icon name="key" className="h-5 w-5 text-teal-700" />{L('codeword')}</div>
+          <div className="flex items-center gap-2 font-semibold"><Icon name="key" className="h-5 w-5 text-teal-700" />{L('codeword')}</div>
           <p className="mt-2 text-sm leading-relaxed text-slate-600">{L('codeword_text')}</p>
           {shield.codeword ? (
             <div className="mt-3 flex items-center justify-between">
