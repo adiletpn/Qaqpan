@@ -40,7 +40,9 @@ OVERLAY_JS = r"""
   const css = document.createElement('style');
   css.textContent = `
     #qv-cap{position:fixed;left:28px;top:150px;width:330px;z-index:9999;font-family:-apple-system,Segoe UI,Roboto,sans-serif;
-      color:#fff;transition:opacity .4s}
+      color:#fff;transition:opacity .4s;background:rgba(2,6,23,.88);padding:16px 18px 18px;border-radius:20px;
+      box-shadow:0 18px 50px rgba(2,6,23,.35);box-sizing:border-box}
+    #qv-cap.bottom{left:50%;top:auto;bottom:40px;width:980px;transform:translateX(-50%)}
     #qv-cap .tag{display:inline-block;background:#10b981;color:#fff;font-weight:800;font-size:15px;letter-spacing:.04em;
       text-transform:uppercase;padding:6px 12px;border-radius:999px}
     #qv-cap .txt{margin-top:14px;font-size:24px;line-height:1.35;font-weight:600}
@@ -71,6 +73,7 @@ OVERLAY_JS = r"""
         stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5l-8-3Z"/></svg></div>
         <h1>${title}</h1><p>${text}</p>${small ? `<small>${small}</small>` : ''}`;
     },
+    dock(where) { cap.classList.toggle('bottom', where === 'bottom') },
     hideCard() { const c = document.getElementById('qv-card'); if (c) { c.style.opacity = 0; setTimeout(() => c.remove(), 700) } },
     ring(x, y) {
       ring.style.left = x + 'px'; ring.style.top = y + 'px'; ring.style.opacity = 1; ring.style.transform = 'scale(1.25)';
@@ -340,6 +343,7 @@ def main() -> None:
         b.cdp("Page.navigate", url=f"{BASE}/bank")
         time.sleep(2.5)
         b.js(OVERLAY_JS)
+        b.js("window.__qv.dock('bottom')")  # the console fills the left side: captions go under it
         caption("Взгляд банка", "b1", 1)
         wait_voice(0.8)
         caption("Взгляд банка", "b2", 0.5)
