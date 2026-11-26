@@ -341,7 +341,7 @@ export function ResultScreen({ clientId, lang, transfer: t, onUpdate, onHome, on
           className={`mx-auto grid h-20 w-20 place-items-center rounded-full text-white shadow-lg ${look.bg}`}>
           {t.status === 'awaiting_family' ? <span className="h-8 w-8 animate-spin rounded-full border-4 border-white/30 border-t-white" /> : <Icon name={look.icon} className="h-10 w-10" />}
         </motion.div>
-        <h2 className="mt-4 text-2xl font-bold leading-tight">{t.title}</h2>
+        <h2 className="mt-4 text-2xl font-semibold leading-tight">{t.title}</h2>
         <div className="mt-1 text-sm text-slate-500">{money(t.amount)} → {t.holder}</div>
         {t.message && <p className="mt-3 text-[15px] leading-relaxed text-slate-700">{t.message}</p>}
         {t.message && <div className="mt-3 flex justify-center"><SpeakButton lang={lang} text={`${t.title ?? ''}. ${t.message}`} /></div>}
@@ -358,7 +358,7 @@ export function ResultScreen({ clientId, lang, transfer: t, onUpdate, onHome, on
               <div className="mt-2 grid grid-cols-2 gap-2">
                 {[true, false].map(v => (
                   <button key={String(v)} onClick={() => setAnswers(a => a.map((x, j) => (j === i ? v : x)))}
-                    className={`rounded-xl py-2 text-sm font-semibold ring-1 transition-all duration-150 active:scale-95 ${answers[i] === v ? (v ? 'bg-red-600 text-white ring-red-600' : 'bg-slate-800 text-white ring-slate-800') : 'bg-white text-slate-700 ring-slate-200'}`}>
+                    className={`rounded-xl py-2 text-sm font-semibold ring-1 transition-[transform,background-color,opacity] duration-150 active:scale-95 ${answers[i] === v ? (v ? 'bg-red-600 text-white ring-red-600' : 'bg-slate-800 text-white ring-slate-800') : 'bg-white text-slate-700 ring-slate-200'}`}>
                     {v ? L('yes') : L('no')}
                   </button>
                 ))}
@@ -437,9 +437,9 @@ export function VictimScreen({ clientId, lang, transferId, onBack }: { clientId:
       <div className="space-y-3 px-4">
         {help && (
           <Card className="!bg-red-50 ring-red-100">
-            <div className="mb-2 text-sm font-bold text-red-800">{L('steps')}</div>
+            <div className="mb-2 text-sm font-semibold text-red-800">{L('steps')}</div>
             <ol className="space-y-2 text-sm text-red-950">
-              {help.steps.map((s, i) => <li key={i} className="flex gap-2"><span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-red-600 text-[11px] font-bold text-white">{i + 1}</span>{s}</li>)}
+              {help.steps.map((s, i) => <li key={i} className="flex gap-2"><span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-red-600 text-[11px] font-semibold text-white">{i + 1}</span>{s}</li>)}
             </ol>
           </Card>
         )}
