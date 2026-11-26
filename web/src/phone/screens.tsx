@@ -448,7 +448,7 @@ export function VictimScreen({ clientId, lang, transferId, onBack }: { clientId:
         <Button onClick={build} disabled={busy}>{busy ? <span className="flex items-center justify-center gap-2"><Spinner />…</span> : L('make_statement')}</Button>
         {help && (
           <Card>
-            <div className="text-sm font-bold">{help.statement.title}</div>
+            <div className="text-sm font-semibold">{help.statement.title}</div>
             <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-slate-700">{help.statement.body}</p>
             <Button tone="light" className="mt-3" onClick={copy}>{copied ? L('copied') : L('copy')}</Button>
           </Card>
@@ -469,7 +469,7 @@ export function SchemesScreen({ lang, onBack }: { lang: Lang; onBack: () => void
         {cards.map(c => (
           <Card key={c.id}>
             <div className="text-[11px] font-semibold text-amber-600">{c.date}</div>
-            <div className="font-bold">{c.title}</div>
+            <div className="font-semibold">{c.title}</div>
             <p className="mt-1 text-sm text-slate-700">{c.how}</p>
             <div className="mt-2 rounded-xl bg-emerald-50 p-2 text-sm text-emerald-900"><b>{L('sign')}:</b> {c.sign}</div>
             <a href={c.source} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs font-semibold text-teal-700">{L('source')} ↗</a>
