@@ -154,7 +154,7 @@ function Block({ title, meta, children }: { title: string; meta?: string; childr
   return (
     <section>
       <div className="mb-3 flex items-baseline gap-2">
-        <h2 className="text-[15px] font-medium">{title}</h2>
+        <h2 className="text-[16px] font-semibold">{title}</h2>
         {meta && <span className="font-mono text-[12px] text-[#737373]">{meta}</span>}
       </div>
       {children}
@@ -173,7 +173,7 @@ function Dossier({ d, compact }: { d: DropProfile; compact: boolean }) {
   const rowH = 44
   const h = Math.max(1, flows.length) * rowH
   return (
-    <div data-tour="drop-card" className="rounded-2xl border border-black/[0.08] bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+    <div data-tour="drop-card" className={`rounded-2xl border bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] ${drop ? 'border-red-600/20 bg-[linear-gradient(180deg,#fef2f2_0%,#ffffff_120px)]' : 'border-black/[0.08]'}`}>
       <div className="flex items-center justify-between gap-3">
         <p className={`flex items-center gap-2 text-[13px] font-medium ${drop ? 'text-red-600' : 'text-amber-700'}`}>
           <span className={`h-1.5 w-1.5 rounded-full ${drop ? 'bg-red-600' : 'bg-amber-500'}`} />
@@ -203,7 +203,7 @@ function Dossier({ d, compact }: { d: DropProfile; compact: boolean }) {
             })}
             <circle cx="61" cy={h / 2} r="2.5" fill={drop ? '#dc2626' : '#d97706'} />
           </svg>
-          <div className="min-w-0 rounded-xl bg-[#f4f4f5] px-3 py-3">
+          <div className={`min-w-0 rounded-xl px-3 py-3 ring-1 ${drop ? 'bg-white ring-red-600/20' : 'bg-[#f4f4f5] ring-transparent'}`}>
             <p className="truncate font-mono text-[13px] tabular-nums">{masked(d.display)}</p>
             <p className="mt-1 truncate text-[12px] text-[#737373]">{d.holder} · {bankName(d.bank)}</p>
             <p className="mt-2 truncate font-mono text-[13px] tabular-nums text-red-600">{money(d.inflow)}</p>
