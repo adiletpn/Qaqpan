@@ -8,16 +8,24 @@ import { Icon } from '../ui'
 // Staff view: the client never sees anything about another person's account.
 
 const EASE = [0.22, 1, 0.36, 1] as const
-const STATUS: Record<string, { label: string; dot: string }> = {
-  held: { label: 'Остановлен', dot: 'bg-red-600' },
-  escalated: { label: 'Семья не ответила', dot: 'bg-amber-500' },
-  delayed: { label: 'Отложен на час', dot: 'bg-neutral-400' },
-  awaiting_family: { label: 'Ждёт сына', dot: 'bg-teal-700' },
-  cancelled: { label: 'Деньги спасены', dot: 'bg-green-600' },
-  completed: { label: 'Проведён', dot: 'bg-neutral-300' },
+const STATUS: Record<string, { label: string; dot: string; pill: string }> = {
+  held: { label: 'Остановлен', dot: 'bg-red-600', pill: 'bg-red-50 text-red-700 ring-red-600/15' },
+  escalated: { label: 'Семья не ответила', dot: 'bg-amber-500', pill: 'bg-amber-50 text-amber-800 ring-amber-600/20' },
+  delayed: { label: 'Отложен на час', dot: 'bg-sky-500', pill: 'bg-sky-50 text-sky-800 ring-sky-600/15' },
+  awaiting_family: { label: 'Ждёт сына', dot: 'bg-teal-600', pill: 'bg-teal-50 text-teal-800 ring-teal-700/15' },
+  cancelled: { label: 'Деньги спасены', dot: 'bg-green-600', pill: 'bg-green-50 text-green-800 ring-green-700/15' },
+  completed: { label: 'Проведён', dot: 'bg-neutral-400', pill: 'bg-neutral-100 text-neutral-600 ring-black/[0.06]' },
 }
+const FALLBACK = { label: '', dot: 'bg-neutral-300', pill: 'bg-neutral-100 text-neutral-600 ring-black/[0.06]' }
+const Pill = ({ st }: { st: { label: string; dot: string; pill: string } }) => (
+  <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[12px] font-medium ring-1 ${st.pill}`}><span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} />{st.label}</span>
+)
 const FAMILY: Record<string, string> = { pending: 'ждёт ответа сына', declined: 'сын отклонил', approved: 'сын разрешил', expired: 'сын не ответил за 15 мин', withdrawn: 'запрос отозван' }
 const DELAY: Record<string, string> = { likely_scam: 'похоже на обман', unclear: 'есть сомнения', likely_ok: 'признаков нет' }
+const ACTIVE = ['held', 'escalated', 'delayed', 'awaiting_family']
+const Kbd = ({ children }: { children: ReactNode }) => (
+  <kbd className="inline-grid h-5 min-w-5 place-items-center rounded-[5px] border border-black/[0.12] bg-white px-1 font-mono text-[11px] text-[#525252] shadow-[0_1px_0_rgba(0,0,0,0.08)]">{children}</kbd>
+)
 const bankName = (b: string) => (b === 'BCC' ? 'наш банк' : b)
 const time = (ts: number) => new Date(ts * 1000).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
 const pct = (s: number) => Math.round(s * 100)
@@ -48,20 +56,39 @@ export function BankConsole({ compact = false }: { compact?: boolean }) {
   }
   const [lead, ...watch] = data?.drops ?? []
 
+  // the analyst's hands stay on the keyboard: J/K move through the queue, B blocks, R releases
+  useEffect(() => {
+    if (compact) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey || (e.target instanceof Element && e.target.closest('input, textarea, [contenteditable]'))) return
+      const k = e.key.toLowerCase()
+      const idx = all.findIndex(i => i.id === current?.id)
+      if ((k === 'j' || k === 'arrowdown') && all.length) { e.preventDefault(); setSel(all[Math.min(all.length - 1, idx + 1)].id) }
+      else if ((k === 'k' || k === 'arrowup') && all.length) { e.preventDefault(); setSel(all[Math.max(0, idx - 1)].id) }
+      else if ((k === 'b' || k === 'и') && current && ACTIVE.includes(current.status) && busy !== current.id) decide(current.id, 'block')
+      else if ((k === 'r' || k === 'к') && current && ACTIVE.includes(current.status) && busy !== current.id) decide(current.id, 'release')
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  })
+
   return (
     <div className={`h-full w-full overflow-y-auto overflow-x-hidden bg-[#fafafa] text-[#171717] ${compact ? 'px-4 py-4' : 'px-4 py-4 sm:px-8 sm:py-6'}`}>
       <header className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h1 className={`font-medium leading-tight ${compact ? 'text-[20px]' : 'text-[20px] sm:text-[24px]'}`}>Антифрод-консоль</h1>
-          <p className="mt-1 text-[13px] text-[#525252]">Рабочее место аналитика · решение остаётся за банком</p>
+          <h1 className={`flex items-center gap-2.5 font-semibold leading-tight ${compact ? 'text-[20px]' : 'text-[20px] sm:text-[24px]'}`}>
+            <span className="grid h-8 w-8 place-items-center rounded-[10px] bg-teal-700 text-white"><Icon name="shield" className="h-[18px] w-[18px]" /></span>Антифрод-консоль
+          </h1>
+          <p className="mt-1.5 text-[13px] text-[#525252]">Рабочее место аналитика · решение остаётся за банком</p>
         </div>
         <p className="flex shrink-0 items-center gap-2 pt-1 text-[12px] text-[#737373]">
+          {!compact && <span className="mr-3 hidden items-center gap-1.5 lg:flex"><Kbd>J</Kbd><Kbd>K</Kbd> выбор <Kbd>B</Kbd> блок <Kbd>R</Kbd> разрешить</span>}
           <span className="h-1.5 w-1.5 rounded-full bg-teal-700" />
           <span className="font-mono tabular-nums">{updated ? time(updated) : '—'}</span>
         </p>
       </header>
 
-      <section className={`mt-5 grid gap-px overflow-hidden rounded-2xl border border-black/[0.08] bg-black/[0.08] ${compact ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4'}`}>
+      <section className={`mt-5 grid gap-3 ${compact ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]'}`}>
         <Stat label="Спасено" value={money(data?.stats.saved ?? 0)} accent />
         <Stat label="Остановлено попыток" value={String(data?.stats.stopped ?? 0)} />
         <Stat label="В очереди" value={String(data?.stats.queue ?? 0)} />
