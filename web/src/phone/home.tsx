@@ -31,8 +31,8 @@ export function Home({ snap, lang, onNav, onVerify, onCheck, onToggleLang, onOpe
 
   const actions = [
     { icon: 'send', label: L('transfer'), on: () => onNav('transfer'), tone: 'bg-teal-700 text-white' },
-    { icon: 'msg', label: L('check_msg'), on: () => onCheck(null), tone: 'bg-white text-teal-800' },
-    { icon: 'phone', label: L('bank_calling'), on: onVerify, tone: 'bg-white text-teal-800' },
+    { icon: 'msg', label: L('check_msg'), on: () => onCheck(null), tone: 'bg-white text-slate-700' },
+    { icon: 'phone', label: L('bank_calling'), on: onVerify, tone: 'bg-white text-slate-700' },
     { icon: 'help', label: L('scammed'), on: () => onNav('victim'), tone: 'bg-white text-red-600' },
   ]
   const shield = snap.shield

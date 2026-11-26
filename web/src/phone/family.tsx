@@ -239,7 +239,7 @@ export function FamilyScreen({ clientId, lang, shield, onBack, onChanged }: { cl
           <div className="mb-2 text-sm font-semibold text-slate-500">{L('how_it_works')}</div>
           <ol className="space-y-2 text-sm text-slate-700">
             {EXPLAIN[shield.role][lang].map((s, i) => (
-              <li key={i} className="flex gap-2"><span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-teal-700 text-[11px] font-bold text-white">{i + 1}</span>{s}</li>
+              <li key={i} className="flex gap-2"><span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-teal-700 text-[11px] font-semibold text-white">{i + 1}</span>{s}</li>
             ))}
           </ol>
         </Card>
