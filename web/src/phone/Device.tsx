@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 // home indicator. Drawn at 390×844 and scaled with a GPU transform, so it stays crisp and cheap.
 export const DEVICE_W = 390
 export const DEVICE_H = 844
-const BEZEL = 11
+const BEZEL = 8   // thin modern bezel: 3 px titanium band + 5 px black
 const STATUS_H = 50
 
 function useClock() {
@@ -41,18 +41,19 @@ export function Device({ children, scale = 1 }: { children: ReactNode; scale?: n
   return (
     <div style={{ width: DEVICE_W * scale, height: DEVICE_H * scale }} className="relative shrink-0">
       <div className="absolute left-0 top-0 origin-top-left" style={{ width: DEVICE_W, height: DEVICE_H, transform: `scale(${scale})` }}>
-        {/* side buttons */}
-        <span className="absolute -left-[3px] top-[116px] h-[30px] w-[4px] rounded-l bg-[#3a3a3c]" />
-        <span className="absolute -left-[3px] top-[170px] h-[56px] w-[4px] rounded-l bg-[#3a3a3c]" />
-        <span className="absolute -left-[3px] top-[236px] h-[56px] w-[4px] rounded-l bg-[#3a3a3c]" />
-        <span className="absolute -right-[3px] top-[196px] h-[86px] w-[4px] rounded-r bg-[#3a3a3c]" />
-        {/* titanium frame */}
-        <div className="absolute inset-0 rounded-[62px] p-[3px] shadow-[0_40px_80px_-20px_rgba(0,0,0,.75),0_0_0_1px_rgba(255,255,255,.06)]"
-          style={{ background: 'linear-gradient(145deg,#5b5d61 0%,#2b2c2f 35%,#1c1d20 60%,#4a4c50 100%)' }}>
-          <div className="h-full w-full rounded-[59px] bg-black" style={{ padding: BEZEL - 3 }}>
-            <div className="relative h-full w-full overflow-hidden rounded-[51px] bg-slate-50" style={{ isolation: 'isolate' }}>
+        {/* side buttons: action, volume, power, camera control */}
+        <span className="absolute -left-[2px] top-[128px] h-[30px] w-[3px] rounded-l bg-[#9a9893]" />
+        <span className="absolute -left-[2px] top-[180px] h-[54px] w-[3px] rounded-l bg-[#9a9893]" />
+        <span className="absolute -left-[2px] top-[244px] h-[54px] w-[3px] rounded-l bg-[#9a9893]" />
+        <span className="absolute -right-[2px] top-[206px] h-[80px] w-[3px] rounded-r bg-[#9a9893]" />
+        <span className="absolute -right-[2px] top-[414px] h-[60px] w-[3px] rounded-r bg-[#9a9893]" />
+        {/* natural titanium band, thin black bezel, big screen radius (iPhone 17-style) */}
+        <div className="absolute inset-0 rounded-[64px] p-[3px] shadow-[0_40px_80px_-24px_rgba(0,0,0,.45)]"
+          style={{ background: 'linear-gradient(180deg,#d8d6d0 0%,#a9a7a1 50%,#d2d0ca 100%)' }}>
+          <div className="h-full w-full rounded-[61px] bg-black" style={{ padding: BEZEL - 3 }}>
+            <div className="relative h-full w-full overflow-hidden rounded-[56px] bg-slate-50" style={{ isolation: 'isolate' }}>
               <StatusBar />
-              <div className="absolute left-1/2 top-[11px] z-50 h-[35px] w-[122px] -translate-x-1/2 rounded-full bg-black" />
+              <div className="absolute left-1/2 top-[11px] z-50 h-[34px] w-[116px] -translate-x-1/2 rounded-full bg-black" />
               <div className="absolute inset-x-0 bottom-0" style={{ top: STATUS_H }}>{children}</div>
               <div className="pointer-events-none absolute bottom-[8px] left-1/2 z-50 h-[5px] w-[134px] -translate-x-1/2 rounded-full bg-slate-900/80" />
             </div>
