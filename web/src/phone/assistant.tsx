@@ -7,15 +7,12 @@ import { Header, Icon } from '../ui'
 import { Thinking } from './Thinking'
 import { useTypewriter } from './typewriter'
 import { SpeakButton } from './Speak'
+import { QUICK } from './quick'
 
 type Msg = { role: 'user' | 'assistant'; content: string; offline?: boolean }
 
-const QUICK: Record<Lang, string[]> = {
-  ru: ['Мне звонят из банка — это правда?', 'Продавец на OLX просит предоплату', 'Пришло SMS про ЭЦП со ссылкой', 'Меня обманули, что делать?'],
-  kk: ['Маған банктен қоңырау шалып тұр — рас па?', 'OLX-та сатушы алдын ала төлем сұрайды', 'ЭЦҚ туралы сілтемесі бар SMS келді', 'Мені алдады, не істеймін?'],
-}
 
-export function AssistantScreen({ clientId, lang, onBack }: { clientId: string; lang: Lang; onBack: () => void }) {
+export function AssistantScreen({ clientId, lang, onBack, seed }: { clientId: string; lang: Lang; onBack: () => void; seed?: string | null }) {
   const L = (k: Parameters<typeof tr>[1]) => tr(lang, k)
   const [msgs, setMsgs] = useState<Msg[]>([])
   const [text, setText] = useState('')

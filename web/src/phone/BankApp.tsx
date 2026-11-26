@@ -163,6 +163,7 @@ export default function BankApp({ clientId }: { clientId: string }) {
           <PushBanner key={`n-${notice.id}`} notice={notice} lang={lang} onOpen={openNotice}
             onClose={() => { api.noticeSeen(clientId, notice.id).then(refresh).catch(() => undefined) }} />
         )}
+        {today && <TodaySheet key="today" items={snap.today ?? []} lang={lang} onClose={() => setToday(false)} />}
         {verify && <VerifySheet key="verify" result={verify} lang={lang} onClose={() => setVerify(null)} />}
         {request && <FamilySheet key={`req-${request.id}`} req={request} clientId={clientId} lang={lang} onClose={() => setOpenRequest(null)}
           onDone={() => { setOpenRequest(null); refresh() }} />}
