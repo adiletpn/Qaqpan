@@ -128,7 +128,7 @@ export function BankConsole({ compact = false }: { compact?: boolean }) {
             <motion.section key={current.id} className="min-w-0" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }} transition={{ duration: 0.2, ease: EASE }}>
               <div className="mb-3 flex items-baseline gap-2">
-                <h2 className="text-[15px] font-medium">Операция</h2>
+                <h2 className="text-[16px] font-semibold">Операция</h2>
                 <span className="font-mono text-[12px] text-[#737373]">{time(current.ts)}</span>
               </div>
               <Detail i={current} busy={busy === current.id} onDecide={decide} />
@@ -143,9 +143,9 @@ export function BankConsole({ compact = false }: { compact?: boolean }) {
 // hairlines come from the 1px gap over a tinted grid, so the 2×2 and 1×4 layouts both draw clean dividers
 function Stat({ label, value, accent, danger }: { label: string; value: string; accent?: boolean; danger?: boolean }) {
   return (
-    <div className="min-w-0 bg-white px-4 py-4">
-      <p className="truncate text-[12px] text-[#737373]">{label}</p>
-      <p className={`mt-2 truncate text-[20px] font-medium leading-none tabular-nums sm:text-[24px] ${accent ? 'text-teal-700' : danger ? 'text-red-600' : ''}`}>{value}</p>
+    <div className={`min-w-0 rounded-2xl px-4 py-4 ring-1 ${accent ? 'bg-teal-700 text-white ring-teal-700' : danger ? 'bg-red-50 ring-red-600/15' : 'bg-white ring-black/[0.08]'}`}>
+      <p className={`truncate text-[12px] ${accent ? 'text-teal-100' : danger ? 'text-red-700' : 'text-[#737373]'}`}>{label}</p>
+      <p className={`mt-2 truncate text-[22px] font-semibold leading-none tabular-nums sm:text-[26px] ${danger ? 'text-red-600' : ''}`}>{value}</p>
     </div>
   )
 }
