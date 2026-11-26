@@ -46,7 +46,7 @@ export function AssistantScreen({ clientId, lang, onBack }: { clientId: string; 
       <Header title={L('assistant')} onBack={onBack} />
       {/* Law «On artificial intelligence» (in force since 18.01.2026): users must know the service uses AI */}
       <div className="mx-4 mb-2 flex items-center gap-2 rounded-xl bg-teal-50 px-3 py-2 text-xs text-teal-900 ring-1 ring-teal-100">
-        <span className="rounded-md bg-teal-700 px-1.5 py-0.5 text-[10px] font-bold text-white">{lang === 'kk' ? 'ЖИ' : 'ИИ'}</span>
+        <span className="rounded-md bg-teal-700 px-1.5 py-0.5 text-[10px] font-semibold text-white">{lang === 'kk' ? 'ЖИ' : 'ИИ'}</span>
         {lang === 'kk' ? 'Жасанды интеллект жауап береді, қателесуі мүмкін' : 'Отвечает искусственный интеллект, может ошибаться'}
       </div>
       <div className="flex-1 space-y-2.5 px-4 pb-4">

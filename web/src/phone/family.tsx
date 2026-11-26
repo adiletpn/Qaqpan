@@ -25,7 +25,7 @@ export function PushBanner({ notice, lang, onOpen, onClose }: { notice: Notice; 
             <Icon name="shield" className="h-5 w-5" />
           </span>
           <button data-tour="push" onClick={onOpen} className="min-w-0 flex-1 text-left">
-            <div className="flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide opacity-70">
+            <div className="flex items-center justify-between text-[11px] font-semibold opacity-70">
               <span>{notice.title}</span><span>{tr(lang, 'now')}</span>
             </div>
             <div className="mt-0.5 text-sm font-semibold leading-snug">{notice.body}</div>
@@ -53,22 +53,22 @@ export function FamilySheet({ req, clientId, lang, onDone, onClose }: { req: Fam
     <motion.div data-tour="family-sheet" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ duration: 0.38, ease: EASE }}
       className="absolute inset-0 z-30 flex flex-col bg-slate-50 shadow-2xl">
       <div className="flex items-center justify-between bg-red-600 px-4 pb-3 pt-3 text-white">
-        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide"><Icon name="family" className="h-4 w-4" />{L('family_shield')}</div>
+        <div className="flex items-center gap-2 text-xs font-semibold"><Icon name="family" className="h-4 w-4" />{L('family_shield')}</div>
         <button onClick={onClose} className="opacity-80" aria-label={L('close')}><Icon name="x" className="h-5 w-5" /></button>
       </div>
       <div className="flex-1 space-y-3 overflow-y-auto px-4 pb-4 pt-4">
-        <h3 data-tour="family-headline" className="text-[22px] font-extrabold leading-tight text-slate-900">{req.headline}</h3>
+        <h3 data-tour="family-headline" className="text-[22px] font-semibold leading-tight text-slate-900">{req.headline}</h3>
         <SpeakButton lang={lang} text={`${req.headline}. ${req.explanation} ${req.advice}`} />
         <p className="text-[15px] leading-relaxed text-slate-700">{req.explanation}</p>
 
         <Card className="!p-3">
-          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{money(req.amount)} → {req.holder}</div>
+          <div className="text-xs font-semibold text-slate-500">{money(req.amount)} → {req.holder}</div>
           <div className="mt-0.5 font-mono text-xs text-slate-400">{req.account}</div>
         </Card>
 
         {req.timeline.length > 0 && (
           <Card className="!p-3">
-            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{L('what_happened')}</div>
+            <div className="mb-2 text-xs font-semibold text-slate-500">{L('what_happened')}</div>
             <ol className="relative space-y-2 border-l-2 border-slate-200 pl-3">
               {req.timeline.map((e, i) => (
                 <li key={i} className="text-sm">
