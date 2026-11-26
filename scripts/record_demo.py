@@ -385,6 +385,10 @@ def main() -> None:
 
         # shield cannot be switched off instantly
         back(0, 0.8)
+        caption("Журнал защиты", "t1", 0.5)
+        tap(0, "Qaqpan активен", pause=1)
+        wait_voice(1)
+        tap(0, "Готово", exact=True, pause=0.8)
         caption("Защита от уговоров", "d1", 1)
         wait_voice()
         tap(0, "Семейный щит", pause=1.2)
