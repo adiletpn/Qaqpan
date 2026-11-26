@@ -144,13 +144,13 @@ export function Home({ snap, lang, onNav, onVerify, onCheck, onToggleLang, onOpe
 
       {snap.sms.length > 0 && (
         <section>
-          <h3 className="mb-2 text-[13px] text-slate-500">{L('sms')}</h3>
+          <h3 className="mb-2 text-[15px] font-semibold text-slate-900">{L('sms')}</h3>
           <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-black/[0.06]">
             {snap.sms.slice().reverse().map(s => (
               <button key={s.id} data-tour="sms" onClick={() => onCheck(s.sample_id)} className="flex w-full gap-3 border-t border-slate-100 p-3 text-left first:border-0 active:bg-slate-50">
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-500"><Icon name="msg" className="h-4 w-4" /></span>
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sky-50 text-sky-700"><Icon name="msg" className="h-4 w-4" /></span>
                 <span className="min-w-0">
-                  <span className="block text-sm font-medium">{s.sender}</span>
+                  <span className="block text-sm font-semibold">{s.sender}</span>
                   <span className="line-clamp-2 block text-xs text-slate-600">{s.text}</span>
                   <span className="mt-1 block text-[12px] font-medium text-teal-700">{L('tap_to_check')}</span>
                 </span>
@@ -161,23 +161,23 @@ export function Home({ snap, lang, onNav, onVerify, onCheck, onToggleLang, onOpe
       )}
 
       <section>
-        <h3 className="mb-2 text-[13px] text-slate-500">{L('operations')}</h3>
+        <h3 className="mb-2 text-[15px] font-semibold text-slate-900">{L('operations')}</h3>
         <div className="overflow-hidden rounded-2xl bg-white ring-1 ring-black/[0.06]">
           {ops.map(o => {
             const paused = o.status !== 'completed'
             const cancelled = o.status === 'cancelled'
             return (
               <div key={o.key} className="flex items-center gap-3 border-t border-slate-100 px-3 py-2.5 first:border-0">
-                <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-medium ${cancelled ? 'bg-teal-50 text-teal-700' : paused ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
+                <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-medium ${cancelled ? 'bg-teal-50 text-teal-700' : paused ? 'bg-amber-50 text-amber-700' : o.amount > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
                   {cancelled ? <Icon name="shield" className="h-4 w-4" /> : o.amount > 0 ? '+' : paused ? '!' : '−'}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm">{o.title}</span>
+                  <span className="block truncate text-sm font-medium">{o.title}</span>
                   <span className={`block truncate text-xs ${cancelled ? 'text-teal-700' : paused ? 'text-amber-700' : 'text-slate-400'}`}>
                     {o.note ?? when(o.ts, lang)}
                   </span>
                 </span>
-                <span className={`shrink-0 text-sm font-medium tabular-nums ${o.amount > 0 ? 'text-emerald-700' : cancelled ? 'text-slate-400 line-through' : paused ? 'text-amber-700' : 'text-slate-900'}`}>
+                <span className={`shrink-0 text-sm font-semibold tabular-nums ${o.amount > 0 ? 'text-emerald-700' : cancelled ? 'text-slate-400 line-through' : paused ? 'text-amber-700' : 'text-slate-900'}`}>
                   {o.amount > 0 ? '+' : '−'}{money(Math.abs(o.amount))}
                 </span>
               </div>
@@ -189,15 +189,15 @@ export function Home({ snap, lang, onNav, onVerify, onCheck, onToggleLang, onOpe
       {schemes.length > 0 && (
         <section>
           <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-[13px] text-slate-500">{L('new_schemes')}</h3>
+            <h3 className="text-[15px] font-semibold text-slate-900">{L('new_schemes')}</h3>
             <button onClick={() => onNav('schemes')} className="text-slate-400" aria-label={L('new_schemes')}><Icon name="chevron" className="h-5 w-5" /></button>
           </div>
           <div className="relative -mx-4">
             <div className="flex snap-x gap-2 overflow-x-auto px-4 pb-1">
               {schemes.map(s => (
-                <button key={s.id} onClick={() => onNav('schemes')} className="w-40 shrink-0 snap-start rounded-2xl bg-white p-3 text-left ring-1 ring-black/[0.06]">
-                  <Icon name="news" className="h-5 w-5 text-slate-400" />
-                  <div className="mt-2 line-clamp-3 text-[13px] leading-snug text-slate-800">{s.title}</div>
+                <button key={s.id} onClick={() => onNav('schemes')} className="w-40 shrink-0 snap-start rounded-2xl bg-amber-50 p-3 text-left ring-1 ring-amber-200/70">
+                  <span className="grid h-8 w-8 place-items-center rounded-lg bg-amber-100 text-amber-700"><Icon name="news" className="h-4 w-4" /></span>
+                  <div className="mt-2 line-clamp-3 text-[13px] font-medium leading-snug text-amber-950">{s.title}</div>
                 </button>
               ))}
             </div>
