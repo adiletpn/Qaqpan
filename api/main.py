@@ -271,6 +271,9 @@ def phone(cid: str) -> dict:
             "notices": [{"id": n.id, "ts": n.ts, "kind": n.kind, "title": n.title[c.lang], "body": n.body[c.lang],
                          "ref": n.ref} for n in STATE.notices[cid] if not n.seen][-3:],
             "shield": family.shield_info(cid, c.lang),
+            # «Что Qaqpan сделал сегодня»: only the client's own events, never anything about other accounts
+            "today": [{"ts": a.ts, "text": a.text.get(c.lang) or a.text["ru"]} for a in STATE.alerts.get(cid, [])
+                      if a.ts >= time.time() - 12 * 3600][-8:],
         }
 
 
