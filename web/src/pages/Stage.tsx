@@ -123,7 +123,7 @@ export default function Stage() {
             <PhoneFrame clientId={p.id} scale={scale} />
             <div className="mt-2 text-center">
               <div className="font-bold leading-tight">{p.caption}</div>
-              <div className="text-xs text-slate-400">{p.role}</div>
+              <div className="text-xs text-slate-500">{p.role}</div>
             </div>
           </div>
         ))}
@@ -149,8 +149,8 @@ export default function Stage() {
       <AnimatePresence>{qr && <StageQr key="qr" onClose={() => setQr(false)} />}</AnimatePresence>
       <footer className="relative z-10 mt-2 flex h-[84px] shrink-0 flex-col-reverse justify-start gap-0.5 overflow-hidden text-base">
         {events.map((e, i) => (
-          <div key={e.seq} className={`flex min-w-0 items-center gap-2 transition-opacity ${i === 0 ? 'text-white' : 'text-slate-500'}`}>
-            <span className={`h-2 w-2 shrink-0 rounded-full ${e.stopped ? 'bg-emerald-400' : 'bg-slate-500'}`} /><span className="truncate">{e.text}</span>
+          <div key={e.seq} className={`flex min-w-0 items-center gap-2 transition-opacity ${i === 0 ? (light ? 'text-slate-900' : 'text-white') : (light ? 'text-slate-400' : 'text-slate-500')}`}>
+            <span className={`h-2 w-2 shrink-0 rounded-full ${e.stopped ? (light ? 'bg-[#F26B1D]' : 'bg-emerald-400') : 'bg-slate-400'}`} /><span className="truncate">{e.text}</span>
           </div>
         ))}
       </footer>
