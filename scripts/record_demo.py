@@ -175,7 +175,7 @@ N = {
 # Natural neural voice (Microsoft, via edge-tts): reads Russian natively and English words (SMS, eGov, OLX,
 # Telegram) in English. QAQPAN_TTS=say falls back to the offline macOS voice.
 TTS = os.getenv("QAQPAN_TTS", "edge")
-NEURAL_VOICE = os.getenv("QAQPAN_NEURAL_VOICE", "en-US-AndrewMultilingualNeural")
+NEURAL_VOICE = os.getenv("QAQPAN_NEURAL_VOICE", "en-US-BrianMultilingualNeural")
 SAY_AS = {"Qaqpan": "Какпан"}  # how the voice should pronounce it; captions keep the real spelling
 
 
