@@ -31,7 +31,7 @@ export interface TransferView {
   analysis?: DelayAnalysis | null
 }
 export interface DelayAnalysis { verdict: 'likely_scam' | 'unclear' | 'likely_ok'; title: string; advice: string; reasons: string[]; source: string }
-export interface DropProfile { account: string; display: string; holder: string; bank: string; score: number; label: 'drop' | 'watch' | 'ok'; signals: string[]; senders: number; inflow: number; attempts: number }
+export interface DropProfile { account: string; display: string; holder: string; bank: string; score: number; label: 'drop' | 'watch' | 'ok'; signals: string[]; senders: number; inflow: number; attempts: number; flows?: { name: string; amount: number }[] }
 export interface BankItem {
   id: string; ts: number; status: TransferView['status']; score: number; amount: number
   client: { id: string; name: string; age: number; city: string }
