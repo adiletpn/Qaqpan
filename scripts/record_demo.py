@@ -421,7 +421,7 @@ def main() -> None:
         inputs += ["-i", str(path)]
         chains.append(f"[{i + 1}:a]aresample=44100,adelay={delay}:all=1[a{i}]")
     mix = "".join(f"[a{i}]" for i in range(len(spoken)))
-    graph = ";".join(chains) + f";{mix}amix=inputs={len(spoken)}:normalize=0:dropout_transition=0,volume=1.6[aout]"
+    graph = ";".join(chains) + f";{mix}amix=inputs={len(spoken)}:normalize=0:dropout_transition=0,volume=1.0[aout]"
     subprocess.run([ffmpeg, "-y", "-loglevel", "error", *inputs, "-filter_complex", graph, "-map", "0:v", "-map", "[aout]",
                     "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", str(OUT)], check=True)
     shutil.rmtree(tmp)
