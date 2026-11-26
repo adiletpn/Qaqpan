@@ -81,7 +81,7 @@ export function FamilySheet({ req, clientId, lang, onDone, onClose }: { req: Fam
         )}
 
         <div className="rounded-2xl bg-amber-50 p-3 ring-1 ring-amber-200">
-          <div className="text-xs font-bold uppercase tracking-wide text-amber-700">{L('what_to_do')}</div>
+          <div className="text-xs font-semibold text-amber-700">{L('what_to_do')}</div>
           <p className="mt-1 text-sm leading-relaxed text-amber-950">{req.advice}</p>
         </div>
 
@@ -181,7 +181,7 @@ export function FamilyScreen({ clientId, lang, shield, onBack, onChanged }: { cl
               <span className="grid h-11 w-11 place-items-center rounded-2xl bg-teal-700 text-white"><Icon name="family" /></span>
               <div>
                 <div className="text-xs text-slate-500">{L('guardian')}</div>
-                <div className="font-bold">{shield.guardian_name} · {shield.guardian_title}</div>
+                <div className="font-semibold">{shield.guardian_name} · {shield.guardian_title}</div>
               </div>
               <span className={`ml-auto rounded-full px-2 py-0.5 text-xs font-semibold ${shield.disable_at ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>
                 {shield.disable_at ? `${L('shield_off_at')} ${when(shield.disable_at)}` : L('shield_on')}
