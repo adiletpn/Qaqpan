@@ -1,31 +1,41 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { api, money, type BankConsoleData, type BankItem, type DropProfile } from '../api'
-import { EASE } from '../motion'
 import { Icon } from '../ui'
 
-// The bank's side of Qaqpan: what an antifraud analyst sees. Qaqpan complements the bank's antifraud —
-// the decision stays with the bank. Staff view: the client never sees anything about another person's account.
-const STATUS: Record<string, { label: string; tone: string }> = {
-  held: { label: 'Остановлен', tone: 'bg-red-100 text-red-800' },
-  escalated: { label: 'Семья не ответила', tone: 'bg-amber-100 text-amber-900' },
-  delayed: { label: 'Отложен на час', tone: 'bg-sky-100 text-sky-900' },
-  awaiting_family: { label: 'Ждёт семью', tone: 'bg-teal-100 text-teal-900' },
-  cancelled: { label: 'Деньги спасены', tone: 'bg-emerald-100 text-emerald-800' },
-  completed: { label: 'Проведён', tone: 'bg-slate-100 text-slate-700' },
+// The bank's side of Qaqpan: the antifraud analyst's workstation. Quiet graphite chrome, one teal accent,
+// red only for «block» and «drop». The one rich moment is the money-flow sketch of the drop account.
+// Staff view: the client never sees anything about another person's account.
+
+const EASE = [0.22, 1, 0.36, 1] as const
+const STATUS: Record<string, { label: string; dot: string }> = {
+  held: { label: 'Остановлен', dot: 'bg-red-600' },
+  escalated: { label: 'Семья не ответила', dot: 'bg-amber-500' },
+  delayed: { label: 'Отложен на час', dot: 'bg-neutral-400' },
+  awaiting_family: { label: 'Ждёт сына', dot: 'bg-teal-700' },
+  cancelled: { label: 'Деньги спасены', dot: 'bg-green-600' },
+  completed: { label: 'Проведён', dot: 'bg-neutral-300' },
 }
 const FAMILY: Record<string, string> = { pending: 'ждёт ответа сына', declined: 'сын отклонил', approved: 'сын разрешил', expired: 'сын не ответил за 15 мин', withdrawn: 'запрос отозван' }
 const DELAY: Record<string, string> = { likely_scam: 'похоже на обман', unclear: 'есть сомнения', likely_ok: 'признаков нет' }
 const bankName = (b: string) => (b === 'BCC' ? 'наш банк' : b)
 const time = (ts: number) => new Date(ts * 1000).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+const pct = (s: number) => Math.round(s * 100)
+
+// «KZ86 8562 0000 0471 1934» -> «KZ86 •••• 1934»: the analyst needs the ends, not the whole number on a projector
+function masked(display: string) {
+  const parts = display.split(' ')
+  return parts.length > 2 ? `${parts[0]} •••• ${parts[parts.length - 1]}` : display
+}
 
 export function BankConsole({ compact = false }: { compact?: boolean }) {
   const [data, setData] = useState<BankConsoleData | null>(null)
   const [sel, setSel] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
+  const [updated, setUpdated] = useState<number | null>(null)
   useEffect(() => {
     let alive = true
-    const run = () => api.bankConsole().then(d => { if (alive) setData(d) }).catch(() => undefined)
+    const run = () => api.bankConsole().then(d => { if (alive) { setData(d); setUpdated(Date.now() / 1000) } }).catch(() => undefined)
     run()
     const t = setInterval(run, 1500)
     return () => { alive = false; clearInterval(t) }
