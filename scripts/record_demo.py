@@ -343,6 +343,7 @@ def main() -> None:
         b.cdp("Page.navigate", url=f"{BASE}/bank")
         time.sleep(2.5)
         b.js(OVERLAY_JS)
+        b.js("window.__qv.dock('bottom')")  # the console fills the left side: captions go under it
         caption("Взгляд банка", "b1", 1)
         wait_voice(0.8)
         caption("Взгляд банка", "b2", 0.5)
