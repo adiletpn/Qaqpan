@@ -238,27 +238,27 @@ function WatchRow({ d }: { d: DropProfile }) {
 }
 
 function Row({ i, on, onClick }: { i: BankItem; on: boolean; onClick: () => void }) {
-  const st = STATUS[i.status] ?? { label: i.status, dot: 'bg-neutral-300' }
+  const st = STATUS[i.status] ?? { ...FALLBACK, label: i.status }
   return (
     <button onClick={onClick}
       className={`flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition-colors duration-150 ${on
         ? 'border-black/[0.08] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]' : 'border-transparent hover:bg-black/[0.03]'}`}>
       <span className={`w-8 shrink-0 font-mono text-[13px] tabular-nums ${i.score >= 0.5 ? 'text-red-600' : 'text-[#525252]'}`}>{pct(i.score)}</span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[14px]">{i.client.name}</span>
+        <span className="block truncate text-[14px] font-medium">{i.client.name}</span>
         <span className="block truncate font-mono text-[12px] tabular-nums text-[#737373]">{time(i.ts)} · {masked(i.recipient.display)}</span>
       </span>
       <span className="shrink-0 text-right">
-        <span className="block font-mono text-[14px] tabular-nums">{money(i.amount)}</span>
-        <span className="flex items-center justify-end gap-1.5 text-[12px] text-[#525252]"><span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} />{st.label}</span>
+        <span className="block font-mono text-[14px] font-semibold tabular-nums">{money(i.amount)}</span>
+        <span className="mt-1 flex justify-end"><Pill st={st} /></span>
       </span>
     </button>
   )
 }
 
 function Detail({ i, busy, onDecide }: { i: BankItem; busy: boolean; onDecide: (id: string, a: 'release' | 'block') => void }) {
-  const st = STATUS[i.status] ?? { label: i.status, dot: 'bg-neutral-300' }
-  const active = ['held', 'escalated', 'delayed', 'awaiting_family'].includes(i.status)
+  const st = STATUS[i.status] ?? { ...FALLBACK, label: i.status }
+  const active = ACTIVE.includes(i.status)
   const facts: [string, string, boolean?][] = [
     ['Риск', `${pct(i.score)}/100`, i.score >= 0.5],
     ...(i.unusual_x && i.unusual_x >= 5 ? [['Норма клиента', `в ${i.unusual_x} раз больше обычных трат`] as [string, string]] : []),
@@ -272,13 +272,13 @@ function Detail({ i, busy, onDecide }: { i: BankItem; busy: boolean; onDecide: (
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-[13px] text-[#525252]">{i.client.name}, {i.client.age} лет · {i.client.city}</p>
-          <p className="mt-2 text-[28px] font-medium leading-none tabular-nums sm:text-[32px]">{money(i.amount)}</p>
+          <p className="mt-2 text-[28px] font-semibold leading-none tabular-nums sm:text-[34px]">{money(i.amount)}</p>
           <p className="mt-2 truncate text-[13px] text-[#525252]"><span className="font-mono tabular-nums">→ {masked(i.recipient.display)}</span> · {i.recipient.holder} · {bankName(i.recipient.bank)}</p>
         </div>
-        <p className="flex shrink-0 items-center gap-1.5 pt-1 text-[13px] text-[#525252]"><span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} />{st.label}</p>
+        <p className="shrink-0 pt-1"><Pill st={st} /></p>
       </div>
 
-      <div data-tour="bank-note" className="mt-5 border-l-2 border-teal-700 pl-4">
+      <div data-tour="bank-note" className="mt-5 rounded-xl border-l-[3px] border-teal-700 bg-teal-50/70 py-3 pl-4 pr-4">
         <p className="flex items-center gap-2 text-[12px] text-[#737373]">
           <Icon name="spark" className="h-3.5 w-3.5 text-teal-700" />Сводка ИИ для аналитика<span className="font-mono">· {i.note.source === 'rules' ? 'по правилам' : 'Mistral'}</span>
         </p>
