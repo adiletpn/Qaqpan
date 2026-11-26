@@ -71,9 +71,13 @@ def drop_profile(st: State, number: str, now: float | None = None) -> dict:
         signals.append("новый для наших клиентов счёт")
     score = min(1.0, score)
     label = "drop" if score >= DROP_FLAG else "watch" if score >= DROP_WATCH else "ok"
+    flows: dict[str, float] = {}
+    for t in attempts:  # who sent how much: staff-only, the client never sees another person's operations
+        flows[t.client_id] = flows.get(t.client_id, 0) + t.amount
     return {"account": number, "display": acc.display if acc else number, "holder": acc.holder if acc else "",
             "bank": acc.bank if acc else "", "score": round(score, 2), "label": label, "signals": signals,
-            "senders": len(senders), "inflow": sum(t.amount for t in attempts), "attempts": len(attempts)}
+            "senders": len(senders), "inflow": sum(t.amount for t in attempts), "attempts": len(attempts),
+            "flows": [{"name": st.clients[c].short, "amount": a} for c, a in sorted(flows.items(), key=lambda x: -x[1])]}
 
 
 def drops(st: State) -> list[dict]:
