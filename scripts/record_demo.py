@@ -40,20 +40,20 @@ OVERLAY_JS = r"""
   const css = document.createElement('style');
   css.textContent = `
     #qv-cap{position:fixed;left:28px;top:150px;width:330px;z-index:9999;font-family:-apple-system,Segoe UI,Roboto,sans-serif;
-      color:#fff;transition:opacity .4s;background:rgba(2,6,23,.88);padding:16px 18px 18px;border-radius:20px;
-      box-shadow:0 18px 50px rgba(2,6,23,.35);box-sizing:border-box}
+      color:#1C1B19;transition:opacity .4s;background:#fff;padding:16px 18px 18px;border-radius:20px;
+      box-shadow:0 2px 6px rgba(28,27,25,.06),0 18px 50px rgba(28,27,25,.16);box-sizing:border-box}
     #qv-cap.bottom{left:50%;top:auto;bottom:40px;width:980px;transform:translateX(-50%)}
-    #qv-cap .tag{display:inline-block;background:#10b981;color:#fff;font-weight:800;font-size:15px;letter-spacing:.04em;
+    #qv-cap .tag{display:inline-block;background:#F26B1D;color:#fff;font-weight:800;font-size:15px;letter-spacing:.04em;
       text-transform:uppercase;padding:6px 12px;border-radius:999px}
     #qv-cap .txt{margin-top:14px;font-size:24px;line-height:1.35;font-weight:600}
     #qv-ring{position:fixed;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:50%;border:5px solid #f59e0b;
       box-shadow:0 0 0 8px rgba(245,158,11,.25);z-index:9998;pointer-events:none;transition:transform .25s,opacity .25s}
-    #qv-card{position:fixed;inset:0;z-index:10000;background:#020617;display:flex;flex-direction:column;align-items:center;
-      justify-content:center;text-align:center;color:#fff;font-family:-apple-system,Segoe UI,Roboto,sans-serif;transition:opacity .6s}
-    #qv-card .logo{width:96px;height:96px;border-radius:28px;background:#10b981;display:grid;place-items:center;margin-bottom:28px}
+    #qv-card{position:fixed;inset:0;z-index:10000;background:#F6F5F2;display:flex;flex-direction:column;align-items:center;
+      justify-content:center;text-align:center;color:#1C1B19;font-family:-apple-system,Segoe UI,Roboto,sans-serif;transition:opacity .6s}
+    #qv-card .logo{width:96px;height:96px;border-radius:28px;background:#F26B1D;display:grid;place-items:center;margin-bottom:28px}
     #qv-card h1{font-size:72px;font-weight:900;margin:0;letter-spacing:-.02em}
-    #qv-card p{font-size:30px;color:#cbd5e1;max-width:1200px;line-height:1.4;margin:18px 0 0}
-    #qv-card small{font-size:20px;color:#64748b;margin-top:36px}`;
+    #qv-card p{font-size:30px;color:#4A4744;max-width:1200px;line-height:1.4;margin:18px 0 0}
+    #qv-card small{font-size:20px;color:#8A857E;margin-top:36px}`;
   document.head.appendChild(css);
   const cap = document.createElement('div'); cap.id = 'qv-cap'; cap.style.opacity = 0;
   cap.innerHTML = '<span class="tag"></span><div class="txt"></div>';
@@ -250,7 +250,7 @@ def main() -> None:
         director("reset", 0.3)
         for cid in ("aigerim", "erzhan", "madina"):  # Russian interface on every phone
             urllib.request.urlopen(urllib.request.Request(f"{BASE}/api/phone/{cid}/lang/ru", method="POST", data=b""))
-        b.cdp("Page.navigate", url=f"{BASE}/stage")
+        b.cdp("Page.navigate", url=f"{BASE}/stage?light")
         time.sleep(3)
         b.js(OVERLAY_JS)
         b.js("window.__qv.card('Qaqpan', 'Капкан для мошенников внутри приложения банка.<br>4 шага мошенничества — 4 слоя защиты, которые передают сигнал друг другу.', 'ITU Hackathon 2026 · Fintech case · Банк ЦентрКредит')")
@@ -348,7 +348,7 @@ def main() -> None:
         wait_voice(0.8)
         caption("Взгляд банка", "b2", 0.5)
         wait_voice(1)
-        b.cdp("Page.navigate", url=f"{BASE}/stage")
+        b.cdp("Page.navigate", url=f"{BASE}/stage?light")
         time.sleep(3)
         b.js(OVERLAY_JS)
 

@@ -38,21 +38,21 @@ export function PhoneFrame({ clientId, scale = 1 }: { clientId: string; scale?: 
   return <Device scale={scale}><BankApp clientId={clientId} /></Device>
 }
 
-export function StepsBar({ fired, compact = false }: { fired: string[]; compact?: boolean }) {
+export function StepsBar({ fired, compact = false, light = false }: { fired: string[]; compact?: boolean; light?: boolean }) {
   return (
     <div className="flex items-stretch gap-1.5">
       {STEPS.map((s, i) => {
         const on = fired.includes(s.id)
         return (
           <div key={s.id} className="flex items-center gap-1.5">
-            <div className={`rounded-2xl transition-all duration-500 ${compact ? 'px-3 py-2' : 'min-w-44 px-4 py-2.5'} ${on ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'bg-white/5 text-slate-300 ring-1 ring-white/10'}`}>
+            <div className={`rounded-2xl transition-all duration-500 ${compact ? 'px-3 py-2' : 'min-w-44 px-4 py-2.5'} ${on ? (light ? 'bg-[#F26B1D] text-white shadow-lg shadow-orange-500/25' : 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30') : (light ? 'bg-white text-slate-600 shadow-sm ring-1 ring-black/5' : 'bg-white/5 text-slate-300 ring-1 ring-white/10')}`}>
               <div className={`flex items-center gap-2 whitespace-nowrap font-bold ${compact ? 'text-xs' : 'text-sm'}`}>
-                <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px] ${on ? 'bg-white text-emerald-600' : 'bg-white/10'}`}>{on ? '✓' : s.n}</span>
+                <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px] ${on ? (light ? 'bg-white text-[#C2410C]' : 'bg-white text-emerald-600') : (light ? 'bg-slate-100' : 'bg-white/10')}`}>{on ? '✓' : s.n}</span>
                 {s.title}
               </div>
-              <div className={`mt-0.5 whitespace-nowrap text-[11px] ${on ? 'text-emerald-50' : 'text-slate-500'}`}>{on ? 'остановлено' : s.layer}</div>
+              <div className={`mt-0.5 whitespace-nowrap text-[11px] ${on ? (light ? 'text-orange-50' : 'text-emerald-50') : 'text-slate-500'}`}>{on ? 'остановлено' : s.layer}</div>
             </div>
-            {i < STEPS.length - 1 && <span className="text-slate-600">›</span>}
+            {i < STEPS.length - 1 && <span className={light ? 'text-slate-400' : 'text-slate-600'}>›</span>}
           </div>
         )
       })}
@@ -71,6 +71,7 @@ export default function Stage() {
   const [help, setHelp] = useState(false)
   const [qr, setQr] = useState(false)
   const theme = useTheme()
+  const light = new URLSearchParams(window.location.search).has('light')  // bright room or the video: /stage?light
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.tagName === 'INPUT' || (e.target as HTMLElement)?.tagName === 'TEXTAREA') return
@@ -99,19 +100,19 @@ export default function Stage() {
     )
   }
   return (
-    <div className="relative flex h-screen flex-col overflow-hidden px-6 py-4 text-white">
-      <Starfield />
+    <div className={`relative flex h-screen flex-col overflow-hidden px-6 py-4 ${light ? 'bg-[#F6F5F2] text-[#1C1B19]' : 'text-white'}`}>
+      {!light && <Starfield />}
       <header className="relative z-10 flex items-center justify-between gap-4">
         <div className="flex shrink-0 items-center gap-3">
-          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-500"><Icon name="shield" className="h-6 w-6" /></div>
+          <div className={`grid h-11 w-11 place-items-center rounded-2xl text-white ${light ? 'bg-[#F26B1D]' : 'bg-emerald-500'}`}><Icon name="shield" className="h-6 w-6" /></div>
           <div>
             <div className="text-2xl font-black tracking-tight">Qaqpan</div>
             <div className={`text-xs text-slate-400 ${compact ? 'max-w-40' : ''}`}>капкан для мошенников внутри приложения банка</div>
           </div>
         </div>
-        <StepsBar fired={stage?.steps ?? []} compact={compact} />
+        <StepsBar fired={stage?.steps ?? []} compact={compact} light={light} />
         <div className="shrink-0 text-right">
-          <div className="text-4xl font-black tabular-nums text-emerald-400">{money(stage?.saved ?? 0)}</div>
+          <div className={`text-4xl font-black tabular-nums ${light ? 'text-[#C2410C]' : 'text-emerald-400'}`}>{money(stage?.saved ?? 0)}</div>
           <div className="text-xs text-slate-400">спасено · остановлено попыток: {stage?.stopped ?? 0}</div>
         </div>
       </header>
@@ -122,7 +123,7 @@ export default function Stage() {
             <PhoneFrame clientId={p.id} scale={scale} />
             <div className="mt-2 text-center">
               <div className="font-bold leading-tight">{p.caption}</div>
-              <div className="text-xs text-slate-400">{p.role}</div>
+              <div className="text-xs text-slate-500">{p.role}</div>
             </div>
           </div>
         ))}
@@ -148,8 +149,8 @@ export default function Stage() {
       <AnimatePresence>{qr && <StageQr key="qr" onClose={() => setQr(false)} />}</AnimatePresence>
       <footer className="relative z-10 mt-2 flex h-[84px] shrink-0 flex-col-reverse justify-start gap-0.5 overflow-hidden text-base">
         {events.map((e, i) => (
-          <div key={e.seq} className={`flex min-w-0 items-center gap-2 transition-opacity ${i === 0 ? 'text-white' : 'text-slate-500'}`}>
-            <span className={`h-2 w-2 shrink-0 rounded-full ${e.stopped ? 'bg-emerald-400' : 'bg-slate-500'}`} /><span className="truncate">{e.text}</span>
+          <div key={e.seq} className={`flex min-w-0 items-center gap-2 transition-opacity ${i === 0 ? (light ? 'text-slate-900' : 'text-white') : (light ? 'text-slate-400' : 'text-slate-500')}`}>
+            <span className={`h-2 w-2 shrink-0 rounded-full ${e.stopped ? (light ? 'bg-[#F26B1D]' : 'bg-emerald-400') : 'bg-slate-400'}`} /><span className="truncate">{e.text}</span>
           </div>
         ))}
       </footer>
