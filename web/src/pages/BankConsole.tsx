@@ -315,9 +315,9 @@ function Detail({ i, busy, onDecide }: { i: BankItem; busy: boolean; onDecide: (
       {active && (
         <div className="mt-6 grid grid-cols-2 gap-2">
           <button disabled={busy} onClick={() => onDecide(i.id, 'block')}
-            className="h-11 rounded-[10px] bg-red-600 text-[14px] font-medium text-white transition-[transform,background-color] duration-150 hover:bg-red-700 active:scale-[0.98] disabled:opacity-50">Заблокировать</button>
+            className="h-11 rounded-[10px] bg-red-600 text-[14px] font-medium text-white transition-[transform,background-color] duration-150 hover:bg-red-700 active:scale-[0.98] disabled:opacity-50">Заблокировать<span className="ml-2 hidden font-mono text-[12px] opacity-60 lg:inline">B</span></button>
           <button disabled={busy} onClick={() => onDecide(i.id, 'release')}
-            className="h-11 rounded-[10px] border border-black/[0.08] bg-[#f4f4f5] text-[14px] font-medium transition-[transform,background-color] duration-150 hover:bg-[#ececee] active:scale-[0.98] disabled:opacity-50">Разрешить</button>
+            className="h-11 rounded-[10px] border border-black/[0.08] bg-[#f4f4f5] text-[14px] font-medium transition-[transform,background-color] duration-150 hover:bg-[#ececee] active:scale-[0.98] disabled:opacity-50">Разрешить<span className="ml-2 hidden font-mono text-[12px] opacity-50 lg:inline">R</span></button>
         </div>
       )}
     </div>
