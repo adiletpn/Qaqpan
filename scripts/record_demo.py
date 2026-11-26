@@ -43,15 +43,15 @@ OVERLAY_JS = r"""
       color:#1C1B19;transition:opacity .4s;background:#fff;padding:16px 18px 18px;border-radius:20px;
       box-shadow:0 2px 6px rgba(28,27,25,.06),0 18px 50px rgba(28,27,25,.16);box-sizing:border-box}
     #qv-cap.bottom{left:50%;top:auto;bottom:40px;width:980px;transform:translateX(-50%)}
-    #qv-cap .tag{display:inline-block;background:#F26B1D;color:#fff;font-weight:800;font-size:15px;letter-spacing:.04em;
+    #qv-cap .tag{display:inline-block;background:#F26B1D;color:#fff;font-weight:600;font-size:15px;letter-spacing:.04em;
       text-transform:uppercase;padding:6px 12px;border-radius:999px}
-    #qv-cap .txt{margin-top:14px;font-size:24px;line-height:1.35;font-weight:600}
+    #qv-cap .txt{margin-top:14px;font-size:24px;line-height:1.4;font-weight:400}
     #qv-ring{position:fixed;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:50%;border:5px solid #f59e0b;
       box-shadow:0 0 0 8px rgba(245,158,11,.25);z-index:9998;pointer-events:none;transition:transform .25s,opacity .25s}
     #qv-card{position:fixed;inset:0;z-index:10000;background:#F6F5F2;display:flex;flex-direction:column;align-items:center;
       justify-content:center;text-align:center;color:#1C1B19;font-family:-apple-system,Segoe UI,Roboto,sans-serif;transition:opacity .6s}
     #qv-card .logo{width:96px;height:96px;border-radius:28px;background:#F26B1D;display:grid;place-items:center;margin-bottom:28px}
-    #qv-card h1{font-size:72px;font-weight:900;margin:0;letter-spacing:-.02em}
+    #qv-card h1{font-size:72px;font-weight:700;margin:0;letter-spacing:-.02em}
     #qv-card p{font-size:30px;color:#4A4744;max-width:1200px;line-height:1.4;margin:18px 0 0}
     #qv-card small{font-size:20px;color:#8A857E;margin-top:36px}`;
   document.head.appendChild(css);
@@ -172,11 +172,30 @@ N = {
 }
 
 
+# Natural neural voice (Microsoft, via edge-tts): reads Russian natively and English words (SMS, eGov, OLX,
+# Telegram) in English. QAQPAN_TTS=say falls back to the offline macOS voice.
+TTS = os.getenv("QAQPAN_TTS", "edge")
+NEURAL_VOICE = os.getenv("QAQPAN_NEURAL_VOICE", "en-US-AndrewMultilingualNeural")
+SAY_AS = {"Qaqpan": "Какпан"}  # how the voice should pronounce it; captions keep the real spelling
+
+
+def spoken_text(text: str) -> str:
+    for word, sound in SAY_AS.items():
+        text = text.replace(word, sound)
+    return text
+
+
 def synth(out_dir: Path) -> dict[str, tuple[Path, float]]:
     clips = {}
     for key, text in N.items():
-        path = out_dir / f"{key}.aiff"
-        subprocess.run(["say", "-v", VOICE, "-r", RATE, "-o", str(path), text], check=True)
+        if TTS == "edge" and Path(sys.executable).with_name("edge-tts").exists():
+            path = out_dir / f"{key}.mp3"
+            edge = Path(sys.executable).with_name("edge-tts")
+            subprocess.run([str(edge), "--voice", NEURAL_VOICE, "--rate=+4%", "--text", spoken_text(text),
+                            "--write-media", str(path)], check=True, capture_output=True)
+        else:
+            path = out_dir / f"{key}.aiff"
+            subprocess.run(["say", "-v", VOICE, "-r", RATE, "-o", str(path), text], check=True)
         dur = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(path)],
                                    capture_output=True, text=True, check=True).stdout.strip())
         clips[key] = (path, dur)
