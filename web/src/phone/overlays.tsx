@@ -35,8 +35,7 @@ export function IncomingCall({ call, lang, onAccept, onDecline }: { call: Call; 
           <span className="text-sm">{tr(lang, 'decline')}</span>
         </motion.button>
         <motion.button data-tour="call-accept" whileTap={{ scale: 0.9 }} onClick={onAccept} className="flex flex-col items-center gap-2">
-          <motion.span animate={{ y: [0, -4, 0] }} transition={{ duration: 1, repeat: Infinity }}
-            className="grid h-16 w-16 place-items-center rounded-full bg-emerald-500"><Icon name="phone" className="h-7 w-7" /></motion.span>
+          <span className="grid h-16 w-16 place-items-center rounded-full bg-emerald-500"><Icon name="phone" className="h-7 w-7" /></span>
           <span className="text-sm">{tr(lang, 'accept')}</span>
         </motion.button>
       </div>

@@ -172,15 +172,15 @@ export function Home({ snap, lang, onNav, onVerify, onCheck, onToggleLang, onOpe
       {schemes.length > 0 && (
         <section>
           <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-500">{L('new_schemes')}</h3>
-            <button onClick={() => onNav('schemes')} className="text-xs font-semibold text-teal-700">›</button>
+            <h3 className="text-[13px] text-slate-500">{L('new_schemes')}</h3>
+            <button onClick={() => onNav('schemes')} className="text-slate-400" aria-label={L('new_schemes')}><Icon name="chevron" className="h-5 w-5" /></button>
           </div>
           <div className="relative -mx-4">
             <div className="flex snap-x gap-2 overflow-x-auto px-4 pb-1">
               {schemes.map(s => (
-                <button key={s.id} onClick={() => onNav('schemes')} className="w-40 shrink-0 snap-start rounded-2xl bg-amber-50 p-3 text-left ring-1 ring-amber-100">
-                  <Icon name="news" className="h-5 w-5 text-amber-600" />
-                  <div className="mt-2 line-clamp-3 text-xs font-semibold leading-snug text-amber-900">{s.title}</div>
+                <button key={s.id} onClick={() => onNav('schemes')} className="w-40 shrink-0 snap-start rounded-2xl bg-white p-3 text-left ring-1 ring-black/[0.06]">
+                  <Icon name="news" className="h-5 w-5 text-slate-400" />
+                  <div className="mt-2 line-clamp-3 text-[13px] leading-snug text-slate-800">{s.title}</div>
                 </button>
               ))}
             </div>
