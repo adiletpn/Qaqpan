@@ -110,7 +110,7 @@ function Verdict({ res, lang }: { res: CheckResult; lang: Lang }) {
       <div className={`flex items-center gap-3 p-4 text-white ${cfg.bg}`}>
         <Icon name={cfg.icon} className="h-7 w-7" />
         <div>
-          <div className="text-lg font-bold">{cfg.label}</div>
+          <div className="text-lg font-semibold">{cfg.label}</div>
           {res.scheme_name && <div className="text-sm opacity-90">{res.scheme_name}</div>}
         </div>
       </div>
@@ -191,8 +191,8 @@ export function TransferScreen({ clientId, lang, prefill, balance, onBack, onDon
           <label className="text-xs font-semibold text-slate-500">{L('amount')}</label>
           <div className="mt-1 flex items-baseline gap-1">
             <input value={amount} onChange={e => setAmount(fmt(e.target.value))} inputMode="numeric" placeholder="0"
-              className="w-full border-0 p-0 text-3xl font-bold focus:outline-none focus:ring-0" />
-            <span className="text-2xl font-bold text-slate-400">₸</span>
+              className="w-full border-0 p-0 text-3xl font-semibold focus:outline-none focus:ring-0" />
+            <span className="text-2xl font-semibold text-slate-400">₸</span>
           </div>
           <div className="mt-2 text-xs text-slate-500">{L('balance')}: {money(balance)}</div>
           {prefill?.note && <div className="mt-2 inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{prefill.note}</div>}
@@ -259,10 +259,10 @@ function DelayCard({ a, lang }: { a: DelayAnalysis | null | undefined; lang: Lan
             className="overflow-hidden rounded-3xl bg-white text-left shadow-sm ring-1 ring-slate-100">
             <div className={`flex items-center gap-2 px-4 py-3 text-white ${tone[a.verdict]}`}>
               <Icon name={a.verdict === 'likely_ok' ? 'check' : 'alert'} className="h-5 w-5" />
-              <div className="font-bold">{a.title}</div>
+              <div className="font-semibold">{a.title}</div>
             </div>
             <div className="space-y-2 p-4 text-sm">
-              <div className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{tr(lang, 'analysis')}</div>
+              <div className="text-[11px] font-semibold text-slate-400">{tr(lang, 'analysis')}</div>
               <ul className="space-y-1.5">
                 {a.reasons.map((r, i) => (
                   <motion.li key={r} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.08, duration: 0.3, ease: EASE }}
@@ -290,7 +290,7 @@ function Analysis({ lang }: { lang: Lang }) {
           animate={{ rotate: 360 }} transition={{ duration: 0.9, repeat: Infinity, ease: 'linear' }} />
         <Icon name="shield" className="h-9 w-9 text-teal-700" />
       </div>
-      <div className="mt-5 text-lg font-bold">{L('analyzing')}</div>
+      <div className="mt-5 text-lg font-semibold">{L('analyzing')}</div>
       <div className="mt-4 w-full space-y-2.5">
         {items.map((k, i) => (
           <motion.div key={k} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 + i * 0.35, duration: 0.3, ease: EASE }}
@@ -341,7 +341,7 @@ export function ResultScreen({ clientId, lang, transfer: t, onUpdate, onHome, on
           className={`mx-auto grid h-20 w-20 place-items-center rounded-full text-white shadow-lg ${look.bg}`}>
           {t.status === 'awaiting_family' ? <span className="h-8 w-8 animate-spin rounded-full border-4 border-white/30 border-t-white" /> : <Icon name={look.icon} className="h-10 w-10" />}
         </motion.div>
-        <h2 className="mt-4 text-2xl font-bold leading-tight">{t.title}</h2>
+        <h2 className="mt-4 text-2xl font-semibold leading-tight">{t.title}</h2>
         <div className="mt-1 text-sm text-slate-500">{money(t.amount)} → {t.holder}</div>
         {t.message && <p className="mt-3 text-[15px] leading-relaxed text-slate-700">{t.message}</p>}
         {t.message && <div className="mt-3 flex justify-center"><SpeakButton lang={lang} text={`${t.title ?? ''}. ${t.message}`} /></div>}
@@ -358,7 +358,7 @@ export function ResultScreen({ clientId, lang, transfer: t, onUpdate, onHome, on
               <div className="mt-2 grid grid-cols-2 gap-2">
                 {[true, false].map(v => (
                   <button key={String(v)} onClick={() => setAnswers(a => a.map((x, j) => (j === i ? v : x)))}
-                    className={`rounded-xl py-2 text-sm font-semibold ring-1 transition-all duration-150 active:scale-95 ${answers[i] === v ? (v ? 'bg-red-600 text-white ring-red-600' : 'bg-slate-800 text-white ring-slate-800') : 'bg-white text-slate-700 ring-slate-200'}`}>
+                    className={`rounded-xl py-2 text-sm font-semibold ring-1 transition-[transform,background-color,opacity] duration-150 active:scale-95 ${answers[i] === v ? (v ? 'bg-red-600 text-white ring-red-600' : 'bg-slate-800 text-white ring-slate-800') : 'bg-white text-slate-700 ring-slate-200'}`}>
                     {v ? L('yes') : L('no')}
                   </button>
                 ))}
@@ -437,9 +437,9 @@ export function VictimScreen({ clientId, lang, transferId, onBack }: { clientId:
       <div className="space-y-3 px-4">
         {help && (
           <Card className="!bg-red-50 ring-red-100">
-            <div className="mb-2 text-sm font-bold text-red-800">{L('steps')}</div>
+            <div className="mb-2 text-sm font-semibold text-red-800">{L('steps')}</div>
             <ol className="space-y-2 text-sm text-red-950">
-              {help.steps.map((s, i) => <li key={i} className="flex gap-2"><span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-red-600 text-[11px] font-bold text-white">{i + 1}</span>{s}</li>)}
+              {help.steps.map((s, i) => <li key={i} className="flex gap-2"><span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-red-600 text-[11px] font-semibold text-white">{i + 1}</span>{s}</li>)}
             </ol>
           </Card>
         )}
@@ -448,7 +448,7 @@ export function VictimScreen({ clientId, lang, transferId, onBack }: { clientId:
         <Button onClick={build} disabled={busy}>{busy ? <span className="flex items-center justify-center gap-2"><Spinner />…</span> : L('make_statement')}</Button>
         {help && (
           <Card>
-            <div className="text-sm font-bold">{help.statement.title}</div>
+            <div className="text-sm font-semibold">{help.statement.title}</div>
             <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-slate-700">{help.statement.body}</p>
             <Button tone="light" className="mt-3" onClick={copy}>{copied ? L('copied') : L('copy')}</Button>
           </Card>
@@ -469,7 +469,7 @@ export function SchemesScreen({ lang, onBack }: { lang: Lang; onBack: () => void
         {cards.map(c => (
           <Card key={c.id}>
             <div className="text-[11px] font-semibold text-amber-600">{c.date}</div>
-            <div className="font-bold">{c.title}</div>
+            <div className="font-semibold">{c.title}</div>
             <p className="mt-1 text-sm text-slate-700">{c.how}</p>
             <div className="mt-2 rounded-xl bg-emerald-50 p-2 text-sm text-emerald-900"><b>{L('sign')}:</b> {c.sign}</div>
             <a href={c.source} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs font-semibold text-teal-700">{L('source')} ↗</a>

@@ -37,13 +37,13 @@ export function Evidence({ text, reasons, lang }: { text: string; reasons: Reaso
   return (
     <div className="space-y-3">
       <div>
-        <div className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-400">{lang === 'kk' ? 'Алдау қай жерде' : 'Где подвох'}</div>
+        <div className="mb-1.5 text-[11px] font-semibold text-slate-400">{lang === 'kk' ? 'Алдау қай жерде' : 'Где подвох'}</div>
         <div className="max-h-48 overflow-y-auto rounded-2xl bg-slate-50 p-3 text-[14px] leading-[1.75] text-slate-700 ring-1 ring-slate-100">
           {segs.map((s, k) => s.n == null ? <span key={k}>{s.text}</span> : (
             <mark key={k} onClick={() => toggle(s.n!)} style={{ animationDelay: `${0.25 + (s.n - 1) * 0.22}s` }}
               className={`qq-mark cursor-pointer rounded-[4px] px-[1px] text-slate-900 transition-shadow ${active === s.n ? 'qq-mark-on' : ''}`}>
               {s.text}
-              {s.first && <sup className="ml-0.5 inline-grid h-[15px] min-w-[15px] place-items-center rounded-full bg-amber-500 px-1 align-[2px] text-[10px] font-bold leading-none text-white">{s.n}</sup>}
+              {s.first && <sup className="ml-0.5 inline-grid h-[15px] min-w-[15px] place-items-center rounded-full bg-amber-500 px-1 align-[2px] text-[10px] font-semibold leading-none text-white">{s.n}</sup>}
             </mark>
           ))}
         </div>
@@ -53,7 +53,7 @@ export function Evidence({ text, reasons, lang }: { text: string; reasons: Reaso
           <motion.li key={r.n} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 + i * 0.08, duration: 0.3, ease: EASE }}
             onClick={() => toggle(r.n)}
             className={`flex cursor-pointer gap-2 rounded-xl px-2 py-1.5 transition-colors duration-200 ${active === r.n ? 'bg-amber-50 ring-1 ring-amber-200' : ''}`}>
-            <span className="mt-[1px] grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full bg-amber-500 text-[11px] font-bold text-white">{r.n}</span>
+            <span className="mt-[1px] grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full bg-amber-500 text-[11px] font-semibold text-white">{r.n}</span>
             <span>{r.text}</span>
           </motion.li>
         ))}

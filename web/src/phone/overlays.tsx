@@ -35,8 +35,7 @@ export function IncomingCall({ call, lang, onAccept, onDecline }: { call: Call; 
           <span className="text-sm">{tr(lang, 'decline')}</span>
         </motion.button>
         <motion.button data-tour="call-accept" whileTap={{ scale: 0.9 }} onClick={onAccept} className="flex flex-col items-center gap-2">
-          <motion.span animate={{ y: [0, -4, 0] }} transition={{ duration: 1, repeat: Infinity }}
-            className="grid h-16 w-16 place-items-center rounded-full bg-emerald-500"><Icon name="phone" className="h-7 w-7" /></motion.span>
+          <span className="grid h-16 w-16 place-items-center rounded-full bg-emerald-500"><Icon name="phone" className="h-7 w-7" /></span>
           <span className="text-sm">{tr(lang, 'accept')}</span>
         </motion.button>
       </div>
@@ -51,12 +50,12 @@ export function CallPill({ call, lang, onVerify, onEnd }: { call: Call; lang: La
       transition={{ duration: 0.3, ease: EASE }} className="z-20 shrink-0 overflow-hidden bg-emerald-600 text-white">
       <div className="space-y-2 px-3 pb-2.5 pt-2">
         <div className="flex items-center gap-2 text-xs">
-          <span className="relative flex h-2 w-2"><span className="absolute h-2 w-2 animate-ping rounded-full bg-white/70" /><span className="h-2 w-2 rounded-full bg-white" /></span>
+          <span className="h-2 w-2 rounded-full bg-white" />
           <span className="font-semibold">{tr(lang, 'on_call')} · {elapsed}</span>
           <span className="truncate opacity-80">{call.label}</span>
           <motion.button whileTap={{ scale: 0.85 }} onClick={onEnd} className="ml-auto rounded-full bg-red-500 p-1.5" aria-label={tr(lang, 'end_call')}><Icon name="x" className="h-3.5 w-3.5" /></motion.button>
         </div>
-        <motion.button data-tour="verify" whileTap={{ scale: 0.97 }} onClick={onVerify} className="flex w-full items-center justify-center gap-2 rounded-xl bg-white py-2 text-sm font-bold text-emerald-700">
+        <motion.button data-tour="verify" whileTap={{ scale: 0.97 }} onClick={onVerify} className="flex w-full items-center justify-center gap-2 rounded-xl bg-white py-2 text-sm font-semibold text-emerald-700">
           <Icon name="shield" className="h-4 w-4" />{tr(lang, 'bank_calling')}
         </motion.button>
       </div>
@@ -72,11 +71,11 @@ export function SmsBanner({ sms, lang, onOpen, onClose, belowCall = false }: { s
       className={`absolute inset-x-2 z-30 ${belowCall ? 'top-[92px]' : 'top-2'}`}>
       <div className="rounded-2xl bg-white/95 p-3 shadow-xl ring-1 ring-slate-200 backdrop-blur">
         <div className="flex items-start gap-3">
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-500 text-white"><Icon name="msg" className="h-5 w-5" /></span>
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-500"><Icon name="msg" className="h-5 w-5" /></span>
           <button onClick={onOpen} className="min-w-0 flex-1 text-left">
-            <div className="text-sm font-semibold">{sms.sender}</div>
+            <div className="text-sm font-medium">{sms.sender}</div>
             <div className="line-clamp-2 text-xs text-slate-600">{sms.text}</div>
-            <div className="mt-1 text-[11px] font-semibold text-teal-700">Qaqpan · {tr(lang, 'tap_to_check')}</div>
+            <div className="mt-1 text-[12px] font-medium text-teal-700">Qaqpan · {tr(lang, 'tap_to_check')}</div>
           </button>
           <button onClick={onClose} className="text-slate-400" aria-label="close"><Icon name="x" className="h-4 w-4" /></button>
         </div>
@@ -110,7 +109,7 @@ export function VerifySheet({ result, lang, onClose }: { result: CallVerify; lan
       <div data-tour="verify-sheet">
       <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ ...SPRING, delay: 0.1 }}
         className={`mx-auto grid h-16 w-16 place-items-center rounded-full text-white ${tone}`}><Icon name={icon} className="h-8 w-8" /></motion.div>
-      <h3 className="mt-4 text-center text-xl font-bold">{result.title}</h3>
+      <h3 className="mt-4 text-center text-xl font-semibold">{result.title}</h3>
       <p className="mt-2 text-center text-sm text-slate-600">{result.message}</p>
       </div>
       <Button tour="verify-done" className="mt-5" tone={result.status === 'not_bank' ? 'danger' : 'primary'} onClick={onClose}>{tr(lang, 'done')}</Button>

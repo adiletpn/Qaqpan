@@ -10,6 +10,7 @@ const paths: Record<string, string> = {
   send: 'M4 12 20 4l-6 16-3-7-7-1Z',
   help: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm-2.5-11.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14m0 3v.5',
   back: 'M15 5l-7 7 7 7',
+  chevron: 'M9 6l6 6-6 6',
   family: 'M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM2 20c0-3.3 2.7-6 6-6s6 2.7 6 6M14 14.3c.6-.2 1.3-.3 2-.3 3.3 0 6 2.7 6 6',
   news: 'M4 5h13v14H6a2 2 0 0 1-2-2V5Zm13 4h3v8a2 2 0 0 1-2 2M8 9h5M8 13h5',
   image: 'M4 5h16v14H4V5Zm0 10 4-4 4 4 3-3 5 5M15 9.5v.5',
@@ -24,7 +25,7 @@ const paths: Record<string, string> = {
 
 export function Icon({ name, className = 'w-5 h-5' }: { name: keyof typeof paths | string; className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
       <path d={paths[name] ?? paths.help} />
     </svg>
   )
@@ -36,7 +37,7 @@ const tones: Record<Tone, string> = {
   danger: 'bg-red-600 text-white active:bg-red-700',
   success: 'bg-emerald-600 text-white active:bg-emerald-700',
   ghost: 'bg-transparent text-teal-800 active:bg-teal-50',
-  light: 'bg-white text-slate-800 border border-slate-200 active:bg-slate-50',
+  light: 'bg-white text-slate-800 border border-black/[0.08] active:bg-slate-50',
 }
 
 export function Button({ children, onClick, tone = 'primary', disabled, className = '', tour }: {
@@ -44,14 +45,14 @@ export function Button({ children, onClick, tone = 'primary', disabled, classNam
 }) {
   return (
     <button onClick={onClick} disabled={disabled} data-tour={tour}
-      className={`w-full rounded-2xl px-4 py-3.5 text-[15px] font-semibold transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 ${tones[tone]} ${className}`}>
+      className={`w-full rounded-[14px] px-4 py-3.5 text-[15px] font-semibold transition-[transform,background-color,opacity] duration-150 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 ${tones[tone]} ${className}`}>
       {children}
     </button>
   )
 }
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <div className={`rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-100 ${className}`}>{children}</div>
+  return <div className={`rounded-2xl bg-white p-4 ring-1 ring-black/[0.06] ${className}`}>{children}</div>
 }
 
 export function Header({ title, onBack }: { title: string; onBack?: () => void }) {
@@ -62,7 +63,7 @@ export function Header({ title, onBack }: { title: string; onBack?: () => void }
           <Icon name="back" />
         </button>
       )}
-      <h2 className="text-lg font-bold text-slate-900">{title}</h2>
+      <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
     </div>
   )
 }
