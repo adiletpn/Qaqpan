@@ -7,15 +7,12 @@ import { Header, Icon } from '../ui'
 import { Thinking } from './Thinking'
 import { useTypewriter } from './typewriter'
 import { SpeakButton } from './Speak'
+import { QUICK } from './quick'
 
 type Msg = { role: 'user' | 'assistant'; content: string; offline?: boolean }
 
-const QUICK: Record<Lang, string[]> = {
-  ru: ['Мне звонят из банка — это правда?', 'Продавец на OLX просит предоплату', 'Пришло SMS про ЭЦП со ссылкой', 'Меня обманули, что делать?'],
-  kk: ['Маған банктен қоңырау шалып тұр — рас па?', 'OLX-та сатушы алдын ала төлем сұрайды', 'ЭЦҚ туралы сілтемесі бар SMS келді', 'Мені алдады, не істеймін?'],
-}
 
-export function AssistantScreen({ clientId, lang, onBack }: { clientId: string; lang: Lang; onBack: () => void }) {
+export function AssistantScreen({ clientId, lang, onBack, seed }: { clientId: string; lang: Lang; onBack: () => void; seed?: string | null }) {
   const L = (k: Parameters<typeof tr>[1]) => tr(lang, k)
   const [msgs, setMsgs] = useState<Msg[]>([])
   const [text, setText] = useState('')
@@ -41,12 +38,19 @@ export function AssistantScreen({ clientId, lang, onBack }: { clientId: string; 
     } finally { setBusy(false) }
   }
 
+  // a question tapped on the home screen is sent right away, once
+  const seeded = useRef(false)
+  useEffect(() => {
+    if (seed && !seeded.current) { seeded.current = true; send(seed) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seed])
+
   return (
     <div className="flex min-h-full flex-col">
       <Header title={L('assistant')} onBack={onBack} />
       {/* Law «On artificial intelligence» (in force since 18.01.2026): users must know the service uses AI */}
-      <div className="mx-4 mb-2 flex items-center gap-2 rounded-xl bg-teal-50 px-3 py-2 text-xs text-teal-900 ring-1 ring-teal-100">
-        <span className="rounded-md bg-teal-700 px-1.5 py-0.5 text-[10px] font-semibold text-white">{lang === 'kk' ? 'ЖИ' : 'ИИ'}</span>
+      <div className="mx-4 mb-2 flex items-center gap-2 px-1 py-1 text-xs text-slate-500">
+        <span className="rounded-md bg-slate-200/80 px-1.5 py-0.5 text-[10px] font-medium text-slate-700">{lang === 'kk' ? 'ЖИ' : 'ИИ'}</span>
         {lang === 'kk' ? 'Жасанды интеллект жауап береді, қателесуі мүмкін' : 'Отвечает искусственный интеллект, может ошибаться'}
       </div>
       <div className="flex-1 space-y-2.5 px-4 pb-4">
@@ -57,7 +61,7 @@ export function AssistantScreen({ clientId, lang, onBack }: { clientId: string; 
               {QUICK[lang].map((q, i) => (
                 <motion.button key={q} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.06, ease: EASE }}
                   whileTap={{ scale: 0.96 }} onClick={() => send(q)}
-                  className="rounded-full bg-white px-3 py-2 text-left text-[13px] font-medium text-teal-800 shadow-sm ring-1 ring-teal-100">
+                  className="rounded-xl bg-white px-3 py-2 text-left text-[13px] text-slate-800 ring-1 ring-black/[0.08]">
                   {q}
                 </motion.button>
               ))}

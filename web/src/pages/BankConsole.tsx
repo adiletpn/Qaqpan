@@ -8,16 +8,24 @@ import { Icon } from '../ui'
 // Staff view: the client never sees anything about another person's account.
 
 const EASE = [0.22, 1, 0.36, 1] as const
-const STATUS: Record<string, { label: string; dot: string }> = {
-  held: { label: 'Остановлен', dot: 'bg-red-600' },
-  escalated: { label: 'Семья не ответила', dot: 'bg-amber-500' },
-  delayed: { label: 'Отложен на час', dot: 'bg-neutral-400' },
-  awaiting_family: { label: 'Ждёт сына', dot: 'bg-teal-700' },
-  cancelled: { label: 'Деньги спасены', dot: 'bg-green-600' },
-  completed: { label: 'Проведён', dot: 'bg-neutral-300' },
+const STATUS: Record<string, { label: string; dot: string; pill: string }> = {
+  held: { label: 'Остановлен', dot: 'bg-red-600', pill: 'bg-red-50 text-red-700 ring-red-600/15' },
+  escalated: { label: 'Семья не ответила', dot: 'bg-amber-500', pill: 'bg-amber-50 text-amber-800 ring-amber-600/20' },
+  delayed: { label: 'Отложен на час', dot: 'bg-sky-500', pill: 'bg-sky-50 text-sky-800 ring-sky-600/15' },
+  awaiting_family: { label: 'Ждёт сына', dot: 'bg-teal-600', pill: 'bg-teal-50 text-teal-800 ring-teal-700/15' },
+  cancelled: { label: 'Деньги спасены', dot: 'bg-green-600', pill: 'bg-green-50 text-green-800 ring-green-700/15' },
+  completed: { label: 'Проведён', dot: 'bg-neutral-400', pill: 'bg-neutral-100 text-neutral-600 ring-black/[0.06]' },
 }
+const FALLBACK = { label: '', dot: 'bg-neutral-300', pill: 'bg-neutral-100 text-neutral-600 ring-black/[0.06]' }
+const Pill = ({ st }: { st: { label: string; dot: string; pill: string } }) => (
+  <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[12px] font-medium ring-1 ${st.pill}`}><span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} />{st.label}</span>
+)
 const FAMILY: Record<string, string> = { pending: 'ждёт ответа сына', declined: 'сын отклонил', approved: 'сын разрешил', expired: 'сын не ответил за 15 мин', withdrawn: 'запрос отозван' }
 const DELAY: Record<string, string> = { likely_scam: 'похоже на обман', unclear: 'есть сомнения', likely_ok: 'признаков нет' }
+const ACTIVE = ['held', 'escalated', 'delayed', 'awaiting_family']
+const Kbd = ({ children }: { children: ReactNode }) => (
+  <kbd className="inline-grid h-5 min-w-5 place-items-center rounded-[5px] border border-black/[0.12] bg-white px-1 font-mono text-[11px] text-[#525252] shadow-[0_1px_0_rgba(0,0,0,0.08)]">{children}</kbd>
+)
 const bankName = (b: string) => (b === 'BCC' ? 'наш банк' : b)
 const time = (ts: number) => new Date(ts * 1000).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
 const pct = (s: number) => Math.round(s * 100)
@@ -48,20 +56,39 @@ export function BankConsole({ compact = false }: { compact?: boolean }) {
   }
   const [lead, ...watch] = data?.drops ?? []
 
+  // the analyst's hands stay on the keyboard: J/K move through the queue, B blocks, R releases
+  useEffect(() => {
+    if (compact) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey || (e.target instanceof Element && e.target.closest('input, textarea, [contenteditable]'))) return
+      const k = e.key.toLowerCase()
+      const idx = all.findIndex(i => i.id === current?.id)
+      if ((k === 'j' || k === 'arrowdown') && all.length) { e.preventDefault(); setSel(all[Math.min(all.length - 1, idx + 1)].id) }
+      else if ((k === 'k' || k === 'arrowup') && all.length) { e.preventDefault(); setSel(all[Math.max(0, idx - 1)].id) }
+      else if ((k === 'b' || k === 'и') && current && ACTIVE.includes(current.status) && busy !== current.id) decide(current.id, 'block')
+      else if ((k === 'r' || k === 'к') && current && ACTIVE.includes(current.status) && busy !== current.id) decide(current.id, 'release')
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  })
+
   return (
     <div className={`h-full w-full overflow-y-auto overflow-x-hidden bg-[#fafafa] text-[#171717] ${compact ? 'px-4 py-4' : 'px-4 py-4 sm:px-8 sm:py-6'}`}>
       <header className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h1 className={`font-medium leading-tight ${compact ? 'text-[20px]' : 'text-[20px] sm:text-[24px]'}`}>Антифрод-консоль</h1>
-          <p className="mt-1 text-[13px] text-[#525252]">Рабочее место аналитика · решение остаётся за банком</p>
+          <h1 className={`flex items-center gap-2.5 font-semibold leading-tight ${compact ? 'text-[20px]' : 'text-[20px] sm:text-[24px]'}`}>
+            <span className="grid h-8 w-8 place-items-center rounded-[10px] bg-teal-700 text-white"><Icon name="shield" className="h-[18px] w-[18px]" /></span>Антифрод-консоль
+          </h1>
+          <p className="mt-1.5 text-[13px] text-[#525252]">Рабочее место аналитика · решение остаётся за банком</p>
         </div>
         <p className="flex shrink-0 items-center gap-2 pt-1 text-[12px] text-[#737373]">
+          {!compact && <span className="mr-3 hidden items-center gap-1.5 lg:flex"><Kbd>J</Kbd><Kbd>K</Kbd> выбор <Kbd>B</Kbd> блок <Kbd>R</Kbd> разрешить</span>}
           <span className="h-1.5 w-1.5 rounded-full bg-teal-700" />
           <span className="font-mono tabular-nums">{updated ? time(updated) : '—'}</span>
         </p>
       </header>
 
-      <section className={`mt-5 grid gap-px overflow-hidden rounded-2xl border border-black/[0.08] bg-black/[0.08] ${compact ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4'}`}>
+      <section className={`mt-5 grid gap-3 ${compact ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]'}`}>
         <Stat label="Спасено" value={money(data?.stats.saved ?? 0)} accent />
         <Stat label="Остановлено попыток" value={String(data?.stats.stopped ?? 0)} />
         <Stat label="В очереди" value={String(data?.stats.queue ?? 0)} />
@@ -101,7 +128,7 @@ export function BankConsole({ compact = false }: { compact?: boolean }) {
             <motion.section key={current.id} className="min-w-0" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }} transition={{ duration: 0.2, ease: EASE }}>
               <div className="mb-3 flex items-baseline gap-2">
-                <h2 className="text-[15px] font-medium">Операция</h2>
+                <h2 className="text-[16px] font-semibold">Операция</h2>
                 <span className="font-mono text-[12px] text-[#737373]">{time(current.ts)}</span>
               </div>
               <Detail i={current} busy={busy === current.id} onDecide={decide} />
@@ -116,9 +143,9 @@ export function BankConsole({ compact = false }: { compact?: boolean }) {
 // hairlines come from the 1px gap over a tinted grid, so the 2×2 and 1×4 layouts both draw clean dividers
 function Stat({ label, value, accent, danger }: { label: string; value: string; accent?: boolean; danger?: boolean }) {
   return (
-    <div className="min-w-0 bg-white px-4 py-4">
-      <p className="truncate text-[12px] text-[#737373]">{label}</p>
-      <p className={`mt-2 truncate text-[20px] font-medium leading-none tabular-nums sm:text-[24px] ${accent ? 'text-teal-700' : danger ? 'text-red-600' : ''}`}>{value}</p>
+    <div className={`min-w-0 rounded-2xl px-4 py-4 ring-1 ${accent ? 'bg-teal-700 text-white ring-teal-700' : danger ? 'bg-red-50 ring-red-600/15' : 'bg-white ring-black/[0.08]'}`}>
+      <p className={`truncate text-[12px] ${accent ? 'text-teal-100' : danger ? 'text-red-700' : 'text-[#737373]'}`}>{label}</p>
+      <p className={`mt-2 truncate text-[22px] font-semibold leading-none tabular-nums sm:text-[26px] ${danger ? 'text-red-600' : ''}`}>{value}</p>
     </div>
   )
 }
@@ -127,7 +154,7 @@ function Block({ title, meta, children }: { title: string; meta?: string; childr
   return (
     <section>
       <div className="mb-3 flex items-baseline gap-2">
-        <h2 className="text-[15px] font-medium">{title}</h2>
+        <h2 className="text-[16px] font-semibold">{title}</h2>
         {meta && <span className="font-mono text-[12px] text-[#737373]">{meta}</span>}
       </div>
       {children}
@@ -146,7 +173,7 @@ function Dossier({ d, compact }: { d: DropProfile; compact: boolean }) {
   const rowH = 44
   const h = Math.max(1, flows.length) * rowH
   return (
-    <div data-tour="drop-card" className="rounded-2xl border border-black/[0.08] bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+    <div data-tour="drop-card" className={`rounded-2xl border bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.05)] ${drop ? 'border-red-600/20 bg-[linear-gradient(180deg,#fef2f2_0%,#ffffff_120px)]' : 'border-black/[0.08]'}`}>
       <div className="flex items-center justify-between gap-3">
         <p className={`flex items-center gap-2 text-[13px] font-medium ${drop ? 'text-red-600' : 'text-amber-700'}`}>
           <span className={`h-1.5 w-1.5 rounded-full ${drop ? 'bg-red-600' : 'bg-amber-500'}`} />
@@ -176,7 +203,7 @@ function Dossier({ d, compact }: { d: DropProfile; compact: boolean }) {
             })}
             <circle cx="61" cy={h / 2} r="2.5" fill={drop ? '#dc2626' : '#d97706'} />
           </svg>
-          <div className="min-w-0 rounded-xl bg-[#f4f4f5] px-3 py-3">
+          <div className={`min-w-0 rounded-xl px-3 py-3 ring-1 ${drop ? 'bg-white ring-red-600/20' : 'bg-[#f4f4f5] ring-transparent'}`}>
             <p className="truncate font-mono text-[13px] tabular-nums">{masked(d.display)}</p>
             <p className="mt-1 truncate text-[12px] text-[#737373]">{d.holder} · {bankName(d.bank)}</p>
             <p className="mt-2 truncate font-mono text-[13px] tabular-nums text-red-600">{money(d.inflow)}</p>
@@ -211,27 +238,27 @@ function WatchRow({ d }: { d: DropProfile }) {
 }
 
 function Row({ i, on, onClick }: { i: BankItem; on: boolean; onClick: () => void }) {
-  const st = STATUS[i.status] ?? { label: i.status, dot: 'bg-neutral-300' }
+  const st = STATUS[i.status] ?? { ...FALLBACK, label: i.status }
   return (
     <button onClick={onClick}
       className={`flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition-colors duration-150 ${on
         ? 'border-black/[0.08] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]' : 'border-transparent hover:bg-black/[0.03]'}`}>
       <span className={`w-8 shrink-0 font-mono text-[13px] tabular-nums ${i.score >= 0.5 ? 'text-red-600' : 'text-[#525252]'}`}>{pct(i.score)}</span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[14px]">{i.client.name}</span>
+        <span className="block truncate text-[14px] font-medium">{i.client.name}</span>
         <span className="block truncate font-mono text-[12px] tabular-nums text-[#737373]">{time(i.ts)} · {masked(i.recipient.display)}</span>
       </span>
       <span className="shrink-0 text-right">
-        <span className="block font-mono text-[14px] tabular-nums">{money(i.amount)}</span>
-        <span className="flex items-center justify-end gap-1.5 text-[12px] text-[#525252]"><span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} />{st.label}</span>
+        <span className="block font-mono text-[14px] font-semibold tabular-nums">{money(i.amount)}</span>
+        <span className="mt-1 flex justify-end"><Pill st={st} /></span>
       </span>
     </button>
   )
 }
 
 function Detail({ i, busy, onDecide }: { i: BankItem; busy: boolean; onDecide: (id: string, a: 'release' | 'block') => void }) {
-  const st = STATUS[i.status] ?? { label: i.status, dot: 'bg-neutral-300' }
-  const active = ['held', 'escalated', 'delayed', 'awaiting_family'].includes(i.status)
+  const st = STATUS[i.status] ?? { ...FALLBACK, label: i.status }
+  const active = ACTIVE.includes(i.status)
   const facts: [string, string, boolean?][] = [
     ['Риск', `${pct(i.score)}/100`, i.score >= 0.5],
     ...(i.unusual_x && i.unusual_x >= 5 ? [['Норма клиента', `в ${i.unusual_x} раз больше обычных трат`] as [string, string]] : []),
@@ -245,13 +272,13 @@ function Detail({ i, busy, onDecide }: { i: BankItem; busy: boolean; onDecide: (
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-[13px] text-[#525252]">{i.client.name}, {i.client.age} лет · {i.client.city}</p>
-          <p className="mt-2 text-[28px] font-medium leading-none tabular-nums sm:text-[32px]">{money(i.amount)}</p>
+          <p className="mt-2 text-[28px] font-semibold leading-none tabular-nums sm:text-[34px]">{money(i.amount)}</p>
           <p className="mt-2 truncate text-[13px] text-[#525252]"><span className="font-mono tabular-nums">→ {masked(i.recipient.display)}</span> · {i.recipient.holder} · {bankName(i.recipient.bank)}</p>
         </div>
-        <p className="flex shrink-0 items-center gap-1.5 pt-1 text-[13px] text-[#525252]"><span className={`h-1.5 w-1.5 rounded-full ${st.dot}`} />{st.label}</p>
+        <p className="shrink-0 pt-1"><Pill st={st} /></p>
       </div>
 
-      <div data-tour="bank-note" className="mt-5 border-l-2 border-teal-700 pl-4">
+      <div data-tour="bank-note" className="mt-5 rounded-xl border-l-[3px] border-teal-700 bg-teal-50/70 py-3 pl-4 pr-4">
         <p className="flex items-center gap-2 text-[12px] text-[#737373]">
           <Icon name="spark" className="h-3.5 w-3.5 text-teal-700" />Сводка ИИ для аналитика<span className="font-mono">· {i.note.source === 'rules' ? 'по правилам' : 'Mistral'}</span>
         </p>
@@ -288,9 +315,9 @@ function Detail({ i, busy, onDecide }: { i: BankItem; busy: boolean; onDecide: (
       {active && (
         <div className="mt-6 grid grid-cols-2 gap-2">
           <button disabled={busy} onClick={() => onDecide(i.id, 'block')}
-            className="h-11 rounded-[10px] bg-red-600 text-[14px] font-medium text-white transition-[transform,background-color] duration-150 hover:bg-red-700 active:scale-[0.98] disabled:opacity-50">Заблокировать</button>
+            className="h-11 rounded-[10px] bg-red-600 text-[14px] font-medium text-white transition-[transform,background-color] duration-150 hover:bg-red-700 active:scale-[0.98] disabled:opacity-50">Заблокировать<span className="ml-2 hidden font-mono text-[12px] opacity-60 lg:inline">B</span></button>
           <button disabled={busy} onClick={() => onDecide(i.id, 'release')}
-            className="h-11 rounded-[10px] border border-black/[0.08] bg-[#f4f4f5] text-[14px] font-medium transition-[transform,background-color] duration-150 hover:bg-[#ececee] active:scale-[0.98] disabled:opacity-50">Разрешить</button>
+            className="h-11 rounded-[10px] border border-black/[0.08] bg-[#f4f4f5] text-[14px] font-medium transition-[transform,background-color] duration-150 hover:bg-[#ececee] active:scale-[0.98] disabled:opacity-50">Разрешить<span className="ml-2 hidden font-mono text-[12px] opacity-50 lg:inline">R</span></button>
         </div>
       )}
     </div>

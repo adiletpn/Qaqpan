@@ -8,7 +8,7 @@ import { useLargeText, useTheme } from '../theme'
 import { FamilyScreen, FamilySheet, PushBanner } from './family'
 import { AssistantScreen } from './assistant'
 import { Home } from './home'
-import { CallPill, IncomingCall, SmsBanner, VerifySheet } from './overlays'
+import { CallPill, IncomingCall, SmsBanner, TodaySheet, VerifySheet } from './overlays'
 import { CheckScreen, ResultScreen, SchemesScreen, TransferScreen, VictimScreen } from './screens'
 
 export type Screen = 'home' | 'check' | 'transfer' | 'result' | 'victim' | 'schemes' | 'family' | 'assistant'
@@ -33,6 +33,8 @@ export default function BankApp({ clientId }: { clientId: string }) {
   const [dismissedSms, setDismissedSms] = useState<string | null>(null)
   const [openRequest, setOpenRequest] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const [askSeed, setAskSeed] = useState<string | null>(null)
+  const [today, setToday] = useState(false)
   const navSeq = useRef(0)
   const mountedAt = useRef(Date.now())
   const [bannerSms, setBannerSms] = useState<string | null>(null)
@@ -120,7 +122,8 @@ export default function BankApp({ clientId }: { clientId: string }) {
 
   const page = (() => {
     switch (screen) {
-      case 'home': return <Home snap={snap} lang={lang} onNav={setScreen} onVerify={doVerify} onCheck={openCheck} onToggleLang={toggleLang} onOpenRequest={setOpenRequest} />
+      case 'home': return <Home snap={snap} lang={lang} onNav={setScreen} onVerify={doVerify} onCheck={openCheck} onToggleLang={toggleLang} onOpenRequest={setOpenRequest}
+        onAsk={q => { setAskSeed(q); setScreen('assistant') }} onToday={() => setToday(true)} />
       case 'check': return <CheckScreen clientId={clientId} lang={lang} initialSample={checkSample} onBack={() => setScreen('home')} />
       case 'transfer': return <TransferScreen clientId={clientId} lang={lang} prefill={snap.prefill} balance={snap.client.balance}
         onBack={() => setScreen('home')} onDone={t => { setTransfer(t); setScreen('result') }} />
@@ -128,7 +131,7 @@ export default function BankApp({ clientId }: { clientId: string }) {
         onHome={() => { setScreen('home'); setTransfer(null) }} onVictim={() => setScreen('victim')} /> : null
       case 'victim': return <VictimScreen clientId={clientId} lang={lang} transferId={transfer?.id} onBack={() => setScreen('home')} />
       case 'schemes': return <SchemesScreen lang={lang} onBack={() => setScreen('home')} />
-      case 'assistant': return <AssistantScreen clientId={clientId} lang={lang} onBack={() => setScreen('home')} />
+      case 'assistant': return <AssistantScreen clientId={clientId} lang={lang} seed={askSeed} onBack={() => { setAskSeed(null); setScreen('home') }} />
       case 'family': return <FamilyScreen clientId={clientId} lang={lang} shield={snap.shield} onBack={() => setScreen('home')} onChanged={refresh} />
     }
   })()
@@ -160,6 +163,7 @@ export default function BankApp({ clientId }: { clientId: string }) {
           <PushBanner key={`n-${notice.id}`} notice={notice} lang={lang} onOpen={openNotice}
             onClose={() => { api.noticeSeen(clientId, notice.id).then(refresh).catch(() => undefined) }} />
         )}
+        {today && <TodaySheet key="today" items={snap.today ?? []} lang={lang} onClose={() => setToday(false)} />}
         {verify && <VerifySheet key="verify" result={verify} lang={lang} onClose={() => setVerify(null)} />}
         {request && <FamilySheet key={`req-${request.id}`} req={request} clientId={clientId} lang={lang} onClose={() => setOpenRequest(null)}
           onDone={() => { setOpenRequest(null); refresh() }} />}

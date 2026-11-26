@@ -116,3 +116,29 @@ export function VerifySheet({ result, lang, onClose }: { result: CallVerify; lan
     </Sheet>
   )
 }
+
+/** «Что Qaqpan сделал сегодня»: the client's own protection log, opened from the balance card. */
+export function TodaySheet({ items, lang, onClose }: { items: { ts: number; text: string }[]; lang: Lang; onClose: () => void }) {
+  const hm = (ts: number) => new Date(ts * 1000).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+  return (
+    <Sheet onClose={onClose}>
+      <h3 className="text-lg font-semibold">{tr(lang, 'today_log')}</h3>
+      {items.length === 0
+        ? <p className="mt-3 text-[15px] leading-snug text-slate-600">{tr(lang, 'today_empty')}</p>
+        : (
+          <ol className="relative mt-4 space-y-3 before:absolute before:bottom-2 before:left-[5px] before:top-2 before:w-px before:bg-slate-200">
+            {items.slice().reverse().map((a, k) => (
+              <motion.li key={a.ts + a.text} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.05 * k, ease: EASE }}
+                className="relative grid grid-cols-[11px_44px_minmax(0,1fr)] items-baseline gap-2 text-[15px] leading-snug">
+                <span className={`relative top-[-1px] h-[11px] w-[11px] rounded-full ring-2 ring-white ${k === 0 ? 'bg-teal-700' : 'bg-slate-300'}`} />
+                <span className="font-mono text-[13px] tabular-nums text-slate-400">{hm(a.ts)}</span>
+                <span className="text-slate-800">{a.text}</span>
+              </motion.li>
+            ))}
+          </ol>
+        )}
+      <p className="mt-4 flex items-center gap-1.5 text-xs text-slate-500"><Icon name="shield" className="h-3.5 w-3.5" />{tr(lang, 'today_note')}</p>
+      <Button className="mt-5" tone="light" onClick={onClose}>{tr(lang, 'done')}</Button>
+    </Sheet>
+  )
+}
