@@ -336,6 +336,18 @@ def main() -> None:
         caption("Шаг 4 · Получили", "s4d")
         wait_voice(0.5)
 
+        # the bank's side: the antifraud console with the drop account
+        b.cdp("Page.navigate", url=f"{BASE}/bank")
+        time.sleep(2.5)
+        b.js(OVERLAY_JS)
+        caption("Взгляд банка", "b1", 1)
+        wait_voice(0.8)
+        caption("Взгляд банка", "b2", 0.5)
+        wait_voice(1)
+        b.cdp("Page.navigate", url=f"{BASE}/stage")
+        time.sleep(3)
+        b.js(OVERLAY_JS)
+
         # help
         caption("Если всё же обманули", "h1", 0.5)
         director("victim", 2)
