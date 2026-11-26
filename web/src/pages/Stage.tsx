@@ -38,21 +38,21 @@ export function PhoneFrame({ clientId, scale = 1 }: { clientId: string; scale?: 
   return <Device scale={scale}><BankApp clientId={clientId} /></Device>
 }
 
-export function StepsBar({ fired, compact = false }: { fired: string[]; compact?: boolean }) {
+export function StepsBar({ fired, compact = false, light = false }: { fired: string[]; compact?: boolean; light?: boolean }) {
   return (
     <div className="flex items-stretch gap-1.5">
       {STEPS.map((s, i) => {
         const on = fired.includes(s.id)
         return (
           <div key={s.id} className="flex items-center gap-1.5">
-            <div className={`rounded-2xl transition-all duration-500 ${compact ? 'px-3 py-2' : 'min-w-44 px-4 py-2.5'} ${on ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : 'bg-white/5 text-slate-300 ring-1 ring-white/10'}`}>
+            <div className={`rounded-2xl transition-all duration-500 ${compact ? 'px-3 py-2' : 'min-w-44 px-4 py-2.5'} ${on ? (light ? 'bg-[#F26B1D] text-white shadow-lg shadow-orange-500/25' : 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30') : (light ? 'bg-white text-slate-600 shadow-sm ring-1 ring-black/5' : 'bg-white/5 text-slate-300 ring-1 ring-white/10')}`}>
               <div className={`flex items-center gap-2 whitespace-nowrap font-bold ${compact ? 'text-xs' : 'text-sm'}`}>
-                <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px] ${on ? 'bg-white text-emerald-600' : 'bg-white/10'}`}>{on ? '✓' : s.n}</span>
+                <span className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-[11px] ${on ? (light ? 'bg-white text-[#C2410C]' : 'bg-white text-emerald-600') : (light ? 'bg-slate-100' : 'bg-white/10')}`}>{on ? '✓' : s.n}</span>
                 {s.title}
               </div>
-              <div className={`mt-0.5 whitespace-nowrap text-[11px] ${on ? 'text-emerald-50' : 'text-slate-500'}`}>{on ? 'остановлено' : s.layer}</div>
+              <div className={`mt-0.5 whitespace-nowrap text-[11px] ${on ? (light ? 'text-orange-50' : 'text-emerald-50') : 'text-slate-500'}`}>{on ? 'остановлено' : s.layer}</div>
             </div>
-            {i < STEPS.length - 1 && <span className="text-slate-600">›</span>}
+            {i < STEPS.length - 1 && <span className={light ? 'text-slate-400' : 'text-slate-600'}>›</span>}
           </div>
         )
       })}

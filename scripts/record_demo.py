@@ -348,7 +348,7 @@ def main() -> None:
         wait_voice(0.8)
         caption("Взгляд банка", "b2", 0.5)
         wait_voice(1)
-        b.cdp("Page.navigate", url=f"{BASE}/stage")
+        b.cdp("Page.navigate", url=f"{BASE}/stage?light")
         time.sleep(3)
         b.js(OVERLAY_JS)
 
