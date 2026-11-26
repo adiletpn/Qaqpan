@@ -312,9 +312,8 @@ def main() -> None:
 
         # AI assistant that sees the client's situation
         caption("Помощник Qaqpan", "a1", 1.5)
-        tap(0, "Спросить Qaqpan", pause=1.2)
-        wait_voice()
-        tap(0, "Мне звонят из банка", pause=0.5)
+        wait_voice(0.2)
+        tap(0, "Мне звонят из банка", pause=0.5)  # a ready question on the home screen opens the chat and asks it
         for _ in range(40):  # wait for the AI answer bubble
             if (b.js("""[...document.querySelectorAll('main > div')[0].querySelectorAll('.rounded-bl-md')]
                 .filter(e => e.textContent.includes('Qaqpan')).length""") or 0) >= 2:
