@@ -46,45 +46,66 @@ export function BankConsole({ compact = false }: { compact?: boolean }) {
     setBusy(id)
     try { await api.bankDecision(id, action); setData(await api.bankConsole()) } catch { /* the next poll shows the state */ } finally { setBusy(null) }
   }
+  const [lead, ...watch] = data?.drops ?? []
 
   return (
-    <div className={`h-full w-full overflow-y-auto overflow-x-hidden bg-slate-100 text-slate-900 ${compact ? 'p-3' : 'p-5 md:p-6'}`}>
-      <div className="flex items-center gap-3">
-        <span className="grid h-10 w-10 place-items-center rounded-2xl bg-slate-900 text-white"><Icon name="shield" className="h-5 w-5" /></span>
+    <div className={`h-full w-full overflow-y-auto overflow-x-hidden bg-[#fafafa] text-[#171717] ${compact ? 'px-4 py-4' : 'px-4 py-4 sm:px-8 sm:py-6'}`}>
+      <header className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <div className="font-black leading-tight">Антифрод-консоль банка</div>
-          <div className="text-xs text-slate-500">рабочее место аналитика · решение остаётся за банком</div>
+          <h1 className={`font-medium leading-tight ${compact ? 'text-[20px]' : 'text-[20px] sm:text-[24px]'}`}>Антифрод-консоль</h1>
+          <p className="mt-1 text-[13px] text-[#525252]">Рабочее место аналитика · решение остаётся за банком</p>
         </div>
-        <span className="ml-auto flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-semibold text-emerald-800">
-          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />онлайн
-        </span>
-      </div>
+        <p className="flex shrink-0 items-center gap-2 pt-1 text-[12px] text-[#737373]">
+          <span className="h-1.5 w-1.5 rounded-full bg-teal-700" />
+          <span className="font-mono tabular-nums">{updated ? time(updated) : '—'}</span>
+        </p>
+      </header>
 
-      <div className={`mt-4 grid gap-2 ${compact ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-4'}`}>
-        <Kpi label="Спасено" value={money(data?.stats.saved ?? 0)} tone="text-emerald-600" />
-        <Kpi label="Остановлено попыток" value={String(data?.stats.stopped ?? 0)} />
-        <Kpi label="В очереди аналитика" value={String(data?.stats.queue ?? 0)} tone={data?.stats.queue ? 'text-amber-600' : ''} />
-        <Kpi label="Дроп-счетов" value={String(data?.stats.drops ?? 0)} tone={data?.stats.drops ? 'text-red-600' : ''} />
-      </div>
+      <section className={`mt-5 grid gap-px overflow-hidden rounded-2xl border border-black/[0.08] bg-black/[0.08] ${compact ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-4'}`}>
+        <Stat label="Спасено" value={money(data?.stats.saved ?? 0)} accent />
+        <Stat label="Остановлено попыток" value={String(data?.stats.stopped ?? 0)} />
+        <Stat label="В очереди" value={String(data?.stats.queue ?? 0)} />
+        <Stat label="Дроп-счетов" value={String(data?.stats.drops ?? 0)} danger={!!data?.stats.drops} />
+      </section>
 
-      <div className={`mt-4 grid gap-4 ${compact ? '' : 'lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]'}`}>
-        <div className="min-w-0 space-y-4">
-          <Section title="Подозрительные счета" hint="детектор дропов: деньги от разных клиентов, жалобы, новый счёт">
-            {data && data.drops.length === 0 && <Empty text="Подозрительных счетов пока нет" />}
-            {data?.drops.map(d => <DropCard key={d.account} d={d} />)}
-          </Section>
-          <Section title="Очередь" hint="остановленные и отложенные переводы">
+      <div className={`mt-6 grid gap-6 ${compact ? '' : 'lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start'}`}>
+        <div className="min-w-0 space-y-6">
+          <Block title="Подозрительные счета" meta={data ? String(data.drops.length) : ''}>
+            {data && !lead && <Empty text="Детектор пока ничего не нашёл" />}
+            {lead && <Dossier d={lead} compact={compact} />}
+            {watch.length > 0 && (
+              <div className="mt-2 divide-y divide-black/[0.06] overflow-hidden rounded-xl border border-black/[0.08] bg-white">
+                {watch.map(d => <WatchRow key={d.account} d={d} />)}
+              </div>
+            )}
+          </Block>
+
+          <Block title="Очередь" meta={data ? String(data.queue.length) : ''}>
             {data && data.queue.length === 0 && <Empty text="Очередь пуста" />}
-            {data?.queue.map(i => <Row key={i.id} i={i} on={current?.id === i.id} onClick={() => setSel(i.id)} />)}
-            {data && data.history.length > 0 && <div className="px-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">Решено</div>}
-            {data?.history.map(i => <Row key={i.id} i={i} on={current?.id === i.id} onClick={() => setSel(i.id)} />)}
-          </Section>
+            <div className="space-y-1">
+              {data?.queue.map(i => <Row key={i.id} i={i} on={current?.id === i.id} onClick={() => setSel(i.id)} />)}
+            </div>
+            {data && data.history.length > 0 && (
+              <>
+                <p className="mb-2 mt-5 text-[12px] text-[#737373]">Решено</p>
+                <div className="space-y-1">
+                  {data.history.map(i => <Row key={i.id} i={i} on={current?.id === i.id} onClick={() => setSel(i.id)} />)}
+                </div>
+              </>
+            )}
+          </Block>
         </div>
+
         <AnimatePresence mode="wait" initial={false}>
           {current && (
-            <motion.div key={current.id} className="min-w-0" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.22, ease: EASE }}>
+            <motion.section key={current.id} className="min-w-0" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }} transition={{ duration: 0.2, ease: EASE }}>
+              <div className="mb-3 flex items-baseline gap-2">
+                <h2 className="text-[15px] font-medium">Операция</h2>
+                <span className="font-mono text-[12px] text-[#737373]">{time(current.ts)}</span>
+              </div>
               <Detail i={current} busy={busy === current.id} onDecide={decide} />
-            </motion.div>
+            </motion.section>
           )}
         </AnimatePresence>
       </div>
