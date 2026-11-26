@@ -45,14 +45,14 @@ export function Button({ children, onClick, tone = 'primary', disabled, classNam
 }) {
   return (
     <button onClick={onClick} disabled={disabled} data-tour={tour}
-      className={`w-full rounded-2xl px-4 py-3.5 text-[15px] font-semibold transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 ${tones[tone]} ${className}`}>
+      className={`w-full rounded-[14px] px-4 py-3.5 text-[15px] font-semibold transition-[transform,background-color,opacity] duration-150 active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 ${tones[tone]} ${className}`}>
       {children}
     </button>
   )
 }
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <div className={`rounded-3xl bg-white p-4 shadow-sm ring-1 ring-slate-100 ${className}`}>{children}</div>
+  return <div className={`rounded-2xl bg-white p-4 ring-1 ring-black/[0.06] ${className}`}>{children}</div>
 }
 
 export function Header({ title, onBack }: { title: string; onBack?: () => void }) {
@@ -63,7 +63,7 @@ export function Header({ title, onBack }: { title: string; onBack?: () => void }
           <Icon name="back" />
         </button>
       )}
-      <h2 className="text-lg font-bold text-slate-900">{title}</h2>
+      <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
     </div>
   )
 }
