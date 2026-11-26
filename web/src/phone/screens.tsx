@@ -259,10 +259,10 @@ function DelayCard({ a, lang }: { a: DelayAnalysis | null | undefined; lang: Lan
             className="overflow-hidden rounded-3xl bg-white text-left shadow-sm ring-1 ring-slate-100">
             <div className={`flex items-center gap-2 px-4 py-3 text-white ${tone[a.verdict]}`}>
               <Icon name={a.verdict === 'likely_ok' ? 'check' : 'alert'} className="h-5 w-5" />
-              <div className="font-bold">{a.title}</div>
+              <div className="font-semibold">{a.title}</div>
             </div>
             <div className="space-y-2 p-4 text-sm">
-              <div className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{tr(lang, 'analysis')}</div>
+              <div className="text-[11px] font-semibold text-slate-400">{tr(lang, 'analysis')}</div>
               <ul className="space-y-1.5">
                 {a.reasons.map((r, i) => (
                   <motion.li key={r} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + i * 0.08, duration: 0.3, ease: EASE }}
@@ -290,7 +290,7 @@ function Analysis({ lang }: { lang: Lang }) {
           animate={{ rotate: 360 }} transition={{ duration: 0.9, repeat: Infinity, ease: 'linear' }} />
         <Icon name="shield" className="h-9 w-9 text-teal-700" />
       </div>
-      <div className="mt-5 text-lg font-bold">{L('analyzing')}</div>
+      <div className="mt-5 text-lg font-semibold">{L('analyzing')}</div>
       <div className="mt-4 w-full space-y-2.5">
         {items.map((k, i) => (
           <motion.div key={k} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 + i * 0.35, duration: 0.3, ease: EASE }}
