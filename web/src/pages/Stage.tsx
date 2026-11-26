@@ -71,6 +71,7 @@ export default function Stage() {
   const [help, setHelp] = useState(false)
   const [qr, setQr] = useState(false)
   const theme = useTheme()
+  const light = new URLSearchParams(window.location.search).has('light')  // bright room or the video: /stage?light
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.tagName === 'INPUT' || (e.target as HTMLElement)?.tagName === 'TEXTAREA') return
@@ -99,19 +100,19 @@ export default function Stage() {
     )
   }
   return (
-    <div className="relative flex h-screen flex-col overflow-hidden px-6 py-4 text-white">
-      <Starfield />
+    <div className={`relative flex h-screen flex-col overflow-hidden px-6 py-4 ${light ? 'bg-[#F6F5F2] text-[#1C1B19]' : 'text-white'}`}>
+      {!light && <Starfield />}
       <header className="relative z-10 flex items-center justify-between gap-4">
         <div className="flex shrink-0 items-center gap-3">
-          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-500"><Icon name="shield" className="h-6 w-6" /></div>
+          <div className={`grid h-11 w-11 place-items-center rounded-2xl text-white ${light ? 'bg-[#F26B1D]' : 'bg-emerald-500'}`}><Icon name="shield" className="h-6 w-6" /></div>
           <div>
             <div className="text-2xl font-black tracking-tight">Qaqpan</div>
             <div className={`text-xs text-slate-400 ${compact ? 'max-w-40' : ''}`}>капкан для мошенников внутри приложения банка</div>
           </div>
         </div>
-        <StepsBar fired={stage?.steps ?? []} compact={compact} />
+        <StepsBar fired={stage?.steps ?? []} compact={compact} light={light} />
         <div className="shrink-0 text-right">
-          <div className="text-4xl font-black tabular-nums text-emerald-400">{money(stage?.saved ?? 0)}</div>
+          <div className={`text-4xl font-black tabular-nums ${light ? 'text-[#C2410C]' : 'text-emerald-400'}`}>{money(stage?.saved ?? 0)}</div>
           <div className="text-xs text-slate-400">спасено · остановлено попыток: {stage?.stopped ?? 0}</div>
         </div>
       </header>
